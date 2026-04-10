@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALA Work Plan Builder</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;background:#f4f6f9;color:#1a1a2e;min-height:100vh}
+.app{max-width:900px;margin:0 auto;padding:2rem 1.5rem 4rem}
+.header{background:linear-gradient(135deg,#1F3864 0%,#2E75B6 100%);color:white;padding:1.4rem 1.5rem;border-radius:10px;margin-bottom:1.5rem}
+.header h1{font-size:18px;font-weight:600;letter-spacing:-0.3px}
+.header p{font-size:12px;opacity:.75;margin-top:4px}
+.card{background:white;border:1px solid #e2e6ea;border-radius:10px;padding:1.25rem 1.5rem;margin-bottom:1rem}
+.card-title{font-size:12px;font-weight:700;color:#1F3864;text-transform:uppercase;letter-spacing:.6px;margin-bottom:1rem;padding-bottom:.6rem;border-bottom:1px solid #e2e6ea}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:.75rem}
+.field{display:flex;flex-direction:column;gap:4px}
+label{font-size:12px;font-weight:500;color:#5a6374}
+input[type=text],input[type=month],input[type=number],select{padding:7px 10px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;color:#1a1a2e;background:white;transition:border-color .15s;width:100%}
+input:focus,select:focus{outline:none;border-color:#2E75B6;box-shadow:0 0 0 3px rgba(46,117,182,.1)}
+.team-table{width:100%;border-collapse:collapse}
+.team-table th{text-align:left;font-size:11px;font-weight:700;color:#5a6374;text-transform:uppercase;letter-spacing:.4px;padding:6px 8px;background:#f4f6f9;border-bottom:1px solid #e2e6ea}
+.team-table td{padding:4px 6px;border-bottom:1px solid #f0f2f5}
+.team-table input{border:1px solid transparent;background:transparent;padding:5px 6px}
+.team-table input:focus{background:white;border-color:#d0d5dd}
+.btn-remove{background:none;border:none;color:#c0392b;cursor:pointer;font-size:16px;padding:2px 6px;border-radius:4px}
+.btn-remove:hover{background:#ffeaea}
+.btn-add{background:none;border:1px dashed #2E75B6;color:#2E75B6;cursor:pointer;font-size:12px;padding:6px 12px;border-radius:6px;margin-top:8px;width:100%;transition:all .15s}
+.btn-add:hover{background:#EBF2FB}
+.section-block{border:1px solid #e2e6ea;border-radius:8px;margin-bottom:8px;overflow:hidden}
+.section-header{display:flex;align-items:center;gap:8px;background:#eef2f8;padding:8px 12px;border-bottom:1px solid #e2e6ea}
+.section-header input{font-weight:600;font-size:13px;color:#1F3864;border:none;background:transparent;flex:1;padding:2px 4px}
+.section-header input:focus{background:white;border:1px solid #d0d5dd;border-radius:4px;box-shadow:none}
+.toggle-btn{font-size:11px;color:#2E75B6;background:none;border:none;cursor:pointer;padding:3px 8px;border-radius:4px}
+.toggle-btn:hover{background:#deeaf8}
+.remove-sec{font-size:11px;color:#c0392b;background:none;border:none;cursor:pointer;padding:3px 8px;border-radius:4px}
+.remove-sec:hover{background:#ffeaea}
+.section-body{padding:10px}
+.task-block{background:#fafbfc;border:1px solid #edf0f4;border-radius:6px;padding:8px 10px;margin-bottom:6px}
+.task-name-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.task-name-row input{flex:1;font-weight:500;font-size:13px;color:#1F3864}
+.hours-grid-wrapper{overflow-x:auto}
+.hg-table{border-collapse:collapse;min-width:100%}
+.hg-table td,.hg-table th{padding:2px 4px;text-align:center}
+.hg-table .hg-label{text-align:left;font-size:11px;font-weight:500;color:#5a6374;white-space:nowrap;min-width:80px;padding-right:8px}
+.hg-table .hg-head{font-size:10px;font-weight:700;color:#8a94a6;text-transform:uppercase;letter-spacing:.3px}
+.hg-table input{width:46px;padding:3px 4px;font-size:12px;text-align:center;border-radius:4px;border:1px solid #d0d5dd}
+.expense-row{display:grid;grid-template-columns:1fr 120px auto;gap:8px;align-items:center;margin-bottom:6px}
+.btn-generate{background:#1F3864;color:white;border:none;padding:13px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:1rem;transition:background .2s}
+.btn-generate:hover{background:#2E75B6}
+.btn-generate:disabled{background:#a0aab8;cursor:not-allowed}
+.status{padding:12px 14px;border-radius:8px;font-size:13px;margin-top:.75rem;display:none;line-height:1.6}
+.status.show{display:block}
+.status.success{background:#edf7ed;color:#1b5e20;border:1px solid #a5d6a7}
+.status.error{background:#ffeaea;color:#b71c1c;border:1px solid #ef9a9a}
+.status.loading{background:#EBF2FB;color:#1F3864;border:1px solid #90caf9}
+.tip{font-size:11px;color:#8a94a6;margin-top:3px;line-height:1.5}
+.chevron{font-size:11px;color:#8a94a6;transition:transform .2s;cursor:pointer;display:inline-block}
+.collapsed>.section-body{display:none}
+.collapsed .chevron{transform:rotate(-90deg)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Amplify Leadership Advisors — Work Plan Builder</h1>
+    <p>Strategic Plan &nbsp;|&nbsp; Fill in the form and click Download to get your Excel workplan</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Project Information</div>
+    <div class="field-row">
+      <div class="field">
+        <label>Client / Organization Name</label>
+        <input type="text" id="clientName" placeholder="e.g. Steppenwolf Theatre Company"/>
+      </div>
+      <div class="field">
+        <label>Project Title</label>
+        <input type="text" id="projectTitle" value="Strategic Plan"/>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Start Month</label>
+        <input type="month" id="startMonth"/>
+      </div>
+      <div class="field">
+        <label>Duration (months)</label>
+        <select id="numMonths" onchange="renderSections()">
+          <option value="6">6 months</option>
+          <option value="7">7 months</option>
+          <option value="8" selected>8 months</option>
+          <option value="9">9 months</option>
+          <option value="10">10 months</option>
+          <option value="12">12 months</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Team Members &amp; Rates</div>
+    <table class="team-table">
+      <thead><tr><th>Name</th><th>Role</th><th>Hourly Rate ($)</th><th></th></tr></thead>
+      <tbody id="teamBody"></tbody>
+    </table>
+    <button class="btn-add" onclick="addTeamMember()">+ Add Team Member</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Work Plan Sections &amp; Tasks</div>
+    <p class="tip" style="margin-bottom:12px">Expand each section to enter estimated hours per team member per month. Leave blank for zero.</p>
+    <div id="sectionsContainer"></div>
+    <button class="btn-add" onclick="addSection()">+ Add Section</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Expenses &amp; Pass-Through Costs</div>
+    <p class="tip" style="margin-bottom:10px">Travel, software licenses, graphic design, convening costs, etc.</p>
+    <div id="expensesContainer"></div>
+    <button class="btn-add" onclick="addExpense()">+ Add Expense</button>
+  </div>
+
+  <button class="btn-generate" id="genBtn" onclick="generateWorkplan()">Download Work Plan (.xlsx)</button>
+  <div class="status" id="statusMsg"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+var team=[{name:"David S",role:"Lead Advisor",rate:250},{name:"Sami C",role:"Project Manager",rate:125}];
+var sections=[
+  {label:"Project Management & Meetings",collapsed:false,tasks:[
+    {label:"Coordination Meetings",hours:{}},
+    {label:"Planning Committee Meetings",hours:{}},
+    {label:"Core Team / Leadership Meetings",hours:{}},
+    {label:"Contract Administration",hours:{}}
+  ]},
+  {label:"Discovery & Deep Data Gathering",collapsed:true,tasks:[
+    {label:"Review of Existing Materials",hours:{}},
+    {label:"One-on-One Interviews",hours:{}},
+    {label:"Virtual Focus Groups",hours:{}},
+    {label:"Individual Insights Survey",hours:{}},
+    {label:"SWOT, Landscape Analysis & Key Trends (AI Assisted)",hours:{}}
+  ]},
+  {label:"Vision, Values & Strategic Priorities",collapsed:true,tasks:[
+    {label:"Community Gathering / Retreat",hours:{}},
+    {label:"Follow-Up Meetings for Vision & Strategic Direction",hours:{}}
+  ]},
+  {label:"Tactical Exploration & Modeling",collapsed:true,tasks:[{label:"Tactical Development Meetings",hours:{}}]},
+  {label:"Strategic Plan Creation & Alignment",collapsed:true,tasks:[{label:"Plan Writing (AI Assisted)",hours:{}}]}
+];
+var expenses=[{label:"Travel (Retreat — Flights, Hotel, Incidentals)",amount:""},{label:"Survey Software",amount:""}];
+
+function nm(){return parseInt(document.getElementById('numMonths').value)||8;}
+
+function monthLabels(){
+  var val=document.getElementById('startMonth').value;
+  var start=val?new Date(val+'-02'):new Date();
+  var n=nm(),out=[];
+  for(var i=0;i<n;i++){
+    var d=new Date(start.getFullYear(),start.getMonth()+i,1);
+    out.push(d.toLocaleString('default',{month:'long'}));
+  }
+  return out;
+}
+
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function renderTeam(){
+  var tb=document.getElementById('teamBody');tb.innerHTML='';
+  team.forEach(function(m,i){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td><input type="text" value="'+esc(m.name)+'" onchange="team['+i+'].name=this.value;renderSections()" placeholder="Name"/></td>'+
+      '<td><input type="text" value="'+esc(m.role)+'" onchange="team['+i+'].role=this.value" placeholder="e.g. Lead Advisor"/></td>'+
+      '<td><input type="number" value="'+m.rate+'" min="0" onchange="team['+i+'].rate=parseFloat(this.value)||0" style="width:90px"/></td>'+
+      '<td><button class="btn-remove" onclick="removeTeam('+i+')">×</button></td>';
+    tb.appendChild(tr);
+  });
+}
+function addTeamMember(){team.push({name:"",role:"",rate:125});renderTeam();renderSections();}
+function removeTeam(i){team.splice(i,1);renderTeam();renderSections();}
+
+function renderSections(){
+  var n=nm(),ml=monthLabels();
+  var validTeam=team.filter(function(m){return m.name.trim();});
+  var c=document.getElementById('sectionsContainer');c.innerHTML='';
+  sections.forEach(function(sec,si){
+    var w=document.createElement('div');
+    w.className='section-block'+(sec.collapsed?' collapsed':'');
+    w.id='sec'+si;
+    var hdr='<div class="section-header">'+
+      '<span class="chevron" onclick="toggleSec('+si+')">▼</span>'+
+      '<input type="text" value="'+esc(sec.label)+'" onclick="event.stopPropagation()" onchange="sections['+si+'].label=this.value" placeholder="Section name"/>'+
+      '<button class="toggle-btn" onclick="toggleSec('+si+')">'+(sec.collapsed?'Expand':'Collapse')+'</button>'+
+      '<button class="remove-sec" onclick="removeSec('+si+')">Remove</button>'+
+      '</div>';
+    var body='<div class="section-body">';
+    sec.tasks.forEach(function(task,ti){
+      body+='<div class="task-block">'+
+        '<div class="task-name-row"><input type="text" value="'+esc(task.label)+'" onchange="sections['+si+'].tasks['+ti+'].label=this.value" placeholder="Task name"/>'+
+        '<button class="btn-remove" onclick="removeTask('+si+','+ti+')">×</button></div>'+
+        '<div class="hours-grid-wrapper"><table class="hg-table"><thead><tr><th class="hg-label"></th>';
+      ml.forEach(function(m){body+='<th class="hg-head">'+m.substring(0,3)+'</th>';});
+      body+='</tr></thead><tbody>';
+      validTeam.forEach(function(m){
+        body+='<tr><td class="hg-label">'+esc(m.name)+'</td>';
+        for(var mi=0;mi<n;mi++){
+          var key='h_'+si+'_'+ti+'_'+m.name.replace(/\s/g,'_')+'_'+mi;
+          var stored=(sections[si].tasks[ti].hours[m.name]||[])[mi]||'';
+          body+='<td><input type="number" id="'+key+'" value="'+(stored||'')+'" min="0" step="0.5" placeholder="0" onchange="storeHour('+si+','+ti+',\''+m.name.replace(/'/g,"\\'")+"',"+mi+',this.value)"/></td>';
+        }
+        body+='</tr>';
+      });
+      body+='</tbody></table></div></div>';
+    });
+    body+='<button class="btn-add" onclick="addTask('+si+')">+ Add Task</button></div>';
+    w.innerHTML=hdr+body;
+    c.appendChild(w);
+  });
+}
+
+function storeHour(si,ti,name,mi,val){
+  if(!sections[si].tasks[ti].hours[name])sections[si].tasks[ti].hours[name]=[];
+  sections[si].tasks[ti].hours[name][mi]=parseFloat(val)||0;
+}
+function toggleSec(si){sections[si].collapsed=!sections[si].collapsed;renderSections();}
+function addSection(){sections.push({label:"New Section",collapsed:false,tasks:[{label:"",hours:{}}]});renderSections();}
+function removeSec(si){if(confirm('Remove section?')){sections.splice(si,1);renderSections();}}
+function addTask(si){sections[si].tasks.push({label:"",hours:{}});renderSections();}
+function removeTask(si,ti){sections[si].tasks.splice(ti,1);renderSections();}
+
+function renderExpenses(){
+  var c=document.getElementById('expensesContainer');c.innerHTML='';
+  expenses.forEach(function(e,i){
+    var d=document.createElement('div');d.className='expense-row';
+    d.innerHTML='<input type="text" value="'+esc(e.label)+'" placeholder="Expense description" onchange="expenses['+i+'].label=this.value"/>'+
+      '<input type="number" value="'+(e.amount||'')+'" placeholder="Amount ($)" min="0" onchange="expenses['+i+'].amount=parseFloat(this.value)||\'\'"/>'+
+      '<button class="btn-remove" onclick="expenses.splice('+i+',1);renderExpenses()">×</button>';
+    c.appendChild(d);
+  });
+}
+function addExpense(){expenses.push({label:"",amount:""});renderExpenses();}
+
+function collectHours(){
+  var n=nm();
+  var validTeam=team.filter(function(m){return m.name.trim();});
+  sections.forEach(function(sec,si){
+    sec.tasks.forEach(function(task,ti){
+      validTeam.forEach(function(m){
+        var hrs=[];
+        for(var mi=0;mi<n;mi++){
+          var key='h_'+si+'_'+ti+'_'+m.name.replace(/\s/g,'_')+'_'+mi;
+          var el=document.getElementById(key);
+          hrs.push(el?(parseFloat(el.value)||0):0);
+        }
+        task.hours[m.name]=hrs;
+      });
+    });
+  });
+}
+
+function setStatus(msg,type){
+  var el=document.getElementById('statusMsg');
+  el.className='status show '+type;el.innerHTML=msg;
+}
+
+function generateWorkplan(){
+  collectHours();
+  var n=nm(),ml=monthLabels();
+  var clientName=document.getElementById('clientName').value.trim()||'Client';
+  var projectTitle=document.getElementById('projectTitle').value.trim()||'Strategic Plan';
+  var validTeam=team.filter(function(m){return m.name.trim();});
+  if(!validTeam.length){setStatus('Add at least one team member.','error');return;}
+  document.getElementById('genBtn').disabled=true;
+  setStatus('Building your Excel workplan…','loading');
+  setTimeout(function(){
+    try{
+      var wb=XLSX.utils.book_new();
+      var aoa=[];
+      var styles=[];
+      function pushRow(cells){aoa.push(cells);}
+
+      var totalCols=4+n;
+      var DARK='1F3864',MED='2E75B6',LBUE='D6E4F0',SECT='E9F0F8',TOT='D9E1F2',LG='F2F2F2',WH='FFFFFF';
+
+      function hdr(bold,sz,color,bg,align,wrap){
+        return {font:{bold:!!bold,sz:sz||10,color:{rgb:color||'000000'},name:'Arial'},
+          fill:bg?{fgColor:{rgb:bg},patternType:'solid'}:undefined,
+          alignment:{horizontal:align||'left',vertical:'center',wrapText:!!wrap}};
+      }
+
+      // Row 1: Title
+      var titleRow=['Amplify Leadership Advisors  |  '+clientName+' — '+projectTitle];
+      for(var i=1;i<totalCols;i++)titleRow.push('');
+      pushRow(titleRow);
+
+      // Row 2: spacer
+      pushRow(Array(totalCols).fill(''));
+
+      // Team header
+      pushRow(['Team Member','Role','Rate ($/hr)'].concat(Array(totalCols-3).fill('')));
+      var teamDataStart=aoa.length;
+      var teamRowIdx={};
+      validTeam.forEach(function(m){
+        teamRowIdx[m.name]=aoa.length+1;
+        pushRow([m.name,m.role||'',m.rate].concat(Array(totalCols-3).fill('')));
+      });
+
+      // WBS spacer
+      pushRow(Array(totalCols).fill(''));
+
+      // WBS header
+      var wbsHeaderRow=aoa.length;
+      pushRow(['Task / Activity','Team Member','Total Cost ($)','Total Hours'].concat(ml));
+
+      var personCost={},personHrs={},totalCostVal=0,totalHrsVal=0;
+      validTeam.forEach(function(m){personCost[m.name]=0;personHrs[m.name]=0;});
+
+      sections.forEach(function(sec){
+        var hasContent=sec.tasks.some(function(t){
+          return validTeam.some(function(m){return (t.hours[m.name]||[]).some(function(h){return h>0;});});
+        });
+        if(!hasContent)return;
+
+        // Section header row
+        var sr=Array(totalCols).fill('');sr[0]=sec.label;pushRow(sr);
+
+        sec.tasks.forEach(function(task){
+          var members=validTeam.filter(function(m){
+            return (task.hours[m.name]||[]).some(function(h){return h>0;});
+          });
+          if(!members.length)return;
+          members.forEach(function(m,idx){
+            var hrs=task.hours[m.name]||[];
+            var totalH=0;
+            for(var mi=0;mi<n;mi++)totalH+=hrs[mi]||0;
+            var cost=totalH*m.rate;
+            personCost[m.name]+=cost;
+            personHrs[m.name]+=totalH;
+            totalCostVal+=cost;totalHrsVal+=totalH;
+            var row=[idx===0?task.label:'',m.name,cost,totalH];
+            for(var mi=0;mi<n;mi++)row.push(hrs[mi]||null);
+            pushRow(row);
+          });
+        });
+
+        // Subtotal
+        var stRow=Array(totalCols).fill('');
+        stRow[0]='Subtotal — '+sec.label;
+        var stCost=0,stHrs=0;
+        for(var r2=wbsHeaderRow+1;r2<aoa.length;r2++){
+          if(typeof aoa[r2][2]==='number')stCost+=aoa[r2][2];
+          if(typeof aoa[r2][3]==='number')stHrs+=aoa[r2][3];
+        }
+        stRow[2]=stCost;stRow[3]=stHrs;
+        for(var mi=0;mi<n;mi++){
+          var mSum=0;
+          for(var r3=wbsHeaderRow+1;r3<aoa.length;r3++){
+            if(typeof aoa[r3][4+mi]==='number')mSum+=aoa[r3][4+mi];
+          }
+          stRow[4+mi]=mSum||null;
+        }
+        pushRow(stRow);
+        pushRow(Array(totalCols).fill(''));
+      });
+
+      // Expenses
+      var validExp=expenses.filter(function(e){return e.label&&e.amount;});
+      var totalExp=0;
+      if(validExp.length){
+        var er=Array(totalCols).fill('');er[0]='Expenses & Pass-Through Costs';pushRow(er);
+        validExp.forEach(function(e){
+          var amt=parseFloat(e.amount)||0;totalExp+=amt;
+          var er2=Array(totalCols).fill('');er2[0]=e.label;er2[2]=amt;pushRow(er2);
+        });
+        pushRow(Array(totalCols).fill(''));
+      }
+
+      // Grand total
+      var gt=Array(totalCols).fill('');
+      gt[0]='TOTAL PROJECT COST';gt[2]=totalCostVal+totalExp;gt[3]=totalHrsVal;
+      pushRow(gt);
+      pushRow(Array(totalCols).fill(''));
+
+      // Per-person summary
+      pushRow(['Team Summary','','Total Cost','Total Hours'].concat(Array(n).fill('')));
+      validTeam.forEach(function(m){
+        pushRow([m.name,m.role||'',personCost[m.name],personHrs[m.name]].concat(Array(n).fill('')));
+      });
+
+      var ws=XLSX.utils.aoa_to_sheet(aoa);
+
+      // Column widths
+      ws['!cols']=[{wch:36},{wch:16},{wch:14},{wch:12}].concat(Array(n).fill({wch:11}));
+
+      // Merges
+      var merges=[];
+      merges.push({s:{r:0,c:0},e:{r:0,c:totalCols-1}});
+      XLSX.utils.book_append_sheet(wb,ws,'Work Plan');
+
+      var filename=(clientName.replace(/[^a-z0-9 ]/gi,'_')+'_'+projectTitle.replace(/[^a-z0-9 ]/gi,'_')+'_Workplan.xlsx').replace(/\s+/g,'_');
+      XLSX.writeFile(wb,filename);
+      setStatus('<strong>Downloaded:</strong> '+filename+'<br><small style="color:#2e7d32">Open in Excel and adjust hours as needed. All cost totals calculate automatically from the hours you enter.</small>','success');
+    }catch(err){
+      setStatus('Error: '+err.message,'error');
+      console.error(err);
+    }
+    document.getElementById('genBtn').disabled=false;
+  },50);
+}
+
+// Init
+var now=new Date();
+document.getElementById('startMonth').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+renderTeam();renderSections();renderExpenses();
+</script>
+</body>
+</html>
