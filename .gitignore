@@ -1,0 +1,30 @@
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Test cache
+.pytest_cache/
+
+# PyInstaller build artifacts
+build/
+dist/
+
+# Logs
+*.log
+
+# Excel files (may contain real attendee data)
+*.xlsx
+*.xls
+*.csv
+
+# Claude Code internal files
+.claude/
+
+# OS files
+.DS_Store
+Thumbs.db
