@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A.C.T. Operations Dashboard</title>
+<style>
+/* =====================================================================
+   A.C.T. Brand Colors
+   Yellow: #F6D053  |  Black: #000000  |  White: #FFFFFF
+   Red: #BD2E2A    |  Light Blue: #63CCE9
+   ===================================================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: Tahoma, Geneva, sans-serif;
+  font-size: 14px;
+  background: #f2f2f2;
+  color: #000;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.header {
+  background: #000;
+  color: #fff;
+  padding: 0 24px;
+}
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0 10px;
+}
+.logo-lockup {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.logo-act {
+  font-family: Tahoma, Geneva, sans-serif;
+  font-weight: bold;
+  font-size: 22px;
+  color: #F6D053;
+  letter-spacing: 3px;
+}
+.logo-sep {
+  color: #F6D053;
+  font-size: 18px;
+}
+.logo-full {
+  font-family: Tahoma, Geneva, sans-serif;
+  font-size: 13px;
+  color: #fff;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: #ccc;
+}
+#last-updated { color: #aaa; }
+.accent-bar { height: 4px; background: #F6D053; }
+
+/* ── Tabs ── */
+.tab-bar {
+  background: #fff;
+  border-bottom: 2px solid #e0e0e0;
+  display: flex;
+  padding: 0 24px;
+  gap: 0;
+  overflow-x: auto;
+}
+.tab-btn {
+  font-family: Tahoma, Geneva, sans-serif;
+  font-weight: bold;
+  font-size: 13px;
+  color: #555;
+  padding: 13px 20px 11px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color .15s, border-color .15s;
+}
+.tab-btn:hover { color: #000; }
+.tab-btn.active { color: #000; border-bottom-color: #F6D053; }
+
+/* ── Main content ── */
+.content { padding: 24px; max-width: 1400px; margin: 0 auto; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Section heading ── */
+.section-title {
+  font-family: Tahoma, Geneva, sans-serif;
+  font-weight: bold;
+  font-size: 15px;
+  color: #000;
+  border-left: 4px solid #F6D053;
+  padding-left: 10px;
+  margin: 24px 0 12px;
+}
+.section-title:first-child { margin-top: 0; }
+
+/* ── Metric cards ── */
+.card-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.metric-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 16px 20px;
+  min-width: 170px;
+  flex: 1 1 170px;
+  max-width: 240px;
+}
+.metric-card .label {
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #666;
+  letter-spacing: .5px;
+  margin-bottom: 6px;
+}
+.metric-card .value {
+  font-size: 26px;
+  font-weight: bold;
+  color: #000;
+  line-height: 1;
+}
+.metric-card .sub {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+}
+.trend-up   { color: #2e7d32; }
+.trend-down { color: #BD2E2A; }
+.trend-flat { color: #888; }
+
+/* ── Tables ── */
+.table-wrap { overflow-x: auto; margin-bottom: 24px; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  font-size: 13px;
+}
+th {
+  background: #000;
+  color: #F6D053;
+  font-family: Tahoma, Geneva, sans-serif;
+  font-weight: bold;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  padding: 9px 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tr:nth-child(even) td { background: #fafafa; }
+tr:hover td { background: #fffde7; }
+
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.show-name { font-weight: bold; }
+
+/* ── Progress bar ── */
+.progress-wrap { display: flex; align-items: center; gap: 8px; min-width: 120px; }
+.progress-bar-bg {
+  flex: 1;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width .3s;
+}
+.progress-pct { font-size: 11px; color: #555; white-space: nowrap; min-width: 36px; text-align: right; }
+
+/* ── Variance colors ── */
+.var-pos { color: #2e7d32; font-weight: bold; }
+.var-neg { color: #BD2E2A; font-weight: bold; }
+
+/* ── Capacity row colors ── */
+.cap-green td { background: #e8f5e9 !important; }
+.cap-yellow td { background: #fffde7 !important; }
+.cap-red td { background: #ffebee !important; }
+tr.cap-green:hover td { background: #c8e6c9 !important; }
+tr.cap-yellow:hover td { background: #fff9c4 !important; }
+tr.cap-red:hover td { background: #ffcdd2 !important; }
+
+/* ── Status badge ── */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+.badge-green  { background: #c8e6c9; color: #1b5e20; }
+.badge-yellow { background: #fff9c4; color: #827717; }
+.badge-red    { background: #ffcdd2; color: #b71c1c; }
+
+/* ── Refresh button ── */
+.btn-refresh {
+  font-family: Tahoma, Geneva, sans-serif;
+  font-weight: bold;
+  font-size: 12px;
+  background: #F6D053;
+  color: #000;
+  border: none;
+  border-radius: 3px;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: background .15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-refresh:hover { background: #f0c030; }
+.btn-refresh:disabled { opacity: .6; cursor: default; }
+.spinner {
+  width: 12px; height: 12px;
+  border: 2px solid #0004;
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: none;
+}
+.btn-refresh.loading .spinner { display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Empty state ── */
+.empty { text-align: center; padding: 40px; color: #999; font-style: italic; }
+
+/* ── Loading overlay ── */
+#loading-overlay {
+  position: fixed; inset: 0; background: #fff8;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-size: 15px; color: #333; gap: 12px; z-index: 100;
+}
+#loading-overlay .big-spinner {
+  width: 36px; height: 36px;
+  border: 4px solid #e0e0e0;
+  border-top-color: #F6D053;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+@media (max-width: 600px) {
+  .tab-btn { padding: 12px 12px 10px; font-size: 12px; }
+  .content { padding: 14px; }
+  .metric-card { max-width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- =====================================================================
+     CONFIGURATION — fill in your values here before publishing
+     ===================================================================== -->
+<script>
+const CONFIG = {
+  // Google Sheets ID
+  SHEET_ID: "1O4P6gVsYg9eMU2a4d8h7RzVVjIWGFqDh90dyyhAxK0A",
+
+  // Google Cloud API key (create at console.cloud.google.com/apis/credentials)
+  // Restrict it to: Google Sheets API
+  API_KEY: "AIzaSyDL9jc9GCJ0HHUMBe7gwdQiYt8KiuLixbQ",
+
+  // Cloud Run service URL (from deploy.sh output) + /refresh
+  REFRESH_ENDPOINT: "https://act-dashboard-351082656422.us-west1.run.app/refresh",
+};
+</script>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="big-spinner"></div>
+  <span>Loading dashboard data…</span>
+</div>
+
+<!-- ── Header ── -->
+<header class="header">
+  <div class="header-inner">
+    <div class="logo-lockup">
+      <span class="logo-act">A.C.T.</span>
+      <span class="logo-sep">|</span>
+      <span class="logo-full">American Conservatory Theater</span>
+    </div>
+    <div class="header-meta">
+      <span id="last-updated">Loading…</span>
+      <button class="btn-refresh" id="refresh-btn" onclick="doRefresh()">
+        <div class="spinner"></div>
+        <span class="btn-label">Refresh</span>
+      </button>
+    </div>
+  </div>
+</header>
+<div class="accent-bar"></div>
+
+<!-- ── Tabs ── -->
+<nav class="tab-bar" role="tablist">
+  <button class="tab-btn active" onclick="switchTab(0)" data-tab="0">Daily Sales</button>
+  <button class="tab-btn" onclick="switchTab(1)" data-tab="1">Subscriptions</button>
+  <button class="tab-btn" onclick="switchTab(2)" data-tab="2">Revenue Projections</button>
+  <button class="tab-btn" onclick="switchTab(3)" data-tab="3">Capacity Look-Ahead</button>
+  <button class="tab-btn" onclick="switchTab(4)" data-tab="4">Attendance</button>
+</nav>
+
+<!-- ── Tab panels ── -->
+<main class="content">
+
+  <!-- ===== Tab 1: Daily Sales ===== -->
+  <section class="tab-panel active" id="tab-0">
+    <div class="section-title">Yesterday's Single Ticket Sales</div>
+    <div class="card-row" id="yesterday-cards"></div>
+
+    <div class="section-title">3-Day Sales Trend by Show</div>
+    <div class="table-wrap">
+      <table id="trend-table">
+        <thead><tr id="trend-head"></tr></thead>
+        <tbody id="trend-body"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">Season-to-Date Totals by Show</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Show</th>
+          <th class="num">Revenue To Date</th>
+          <th class="num">Seats Sold To Date</th>
+        </tr></thead>
+        <tbody id="todate-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== Tab 2: Subscriptions ===== -->
+  <section class="tab-panel" id="tab-1">
+    <div class="section-title">Yesterday's Subscription Sales</div>
+    <div class="card-row" id="subs-yesterday-cards"></div>
+
+    <div class="section-title">Season-to-Date by Production</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Production</th>
+          <th class="num">Subs Sold</th>
+          <th class="num">Revenue</th>
+        </tr></thead>
+        <tbody id="subs-todate-body"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">Renewal &amp; New Subscriber Response</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Category</th>
+          <th class="num">Seat Qty</th>
+          <th class="num">Amount</th>
+          <th class="num">Renewal %</th>
+          <th class="num">Base HH</th>
+        </tr></thead>
+        <tbody id="sub-response-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== Tab 3: Revenue Projections ===== -->
+  <section class="tab-panel" id="tab-2">
+    <div class="section-title">Revenue Pacing — All Streams</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Category</th>
+          <th>Line Item</th>
+          <th class="num">Budget</th>
+          <th class="num">Actual To Date</th>
+          <th>Progress</th>
+          <th class="num">Forecast</th>
+          <th class="num">Variance</th>
+        </tr></thead>
+        <tbody id="pacing-body"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">Conservatory Programs</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Program</th>
+          <th class="num">Budget</th>
+          <th class="num">Actual</th>
+          <th class="num">Variance</th>
+          <th>Notes</th>
+        </tr></thead>
+        <tbody id="conservatory-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== Tab 4: Capacity Look-Ahead ===== -->
+  <section class="tab-panel" id="tab-3">
+    <div class="section-title">Upcoming Performances — Next 14 Days</div>
+    <div style="display:flex;gap:16px;margin-bottom:14px;font-size:12px;align-items:center;">
+      <span><span class="badge badge-green">●</span> 70%+ sold</span>
+      <span><span class="badge badge-yellow">●</span> 40–69% sold</span>
+      <span><span class="badge badge-red">●</span> Under 40% sold</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Show</th>
+          <th class="num">Capacity</th>
+          <th class="num">% Sold</th>
+          <th class="num">Paid Count</th>
+          <th class="num">Available</th>
+          <th class="num">Revenue</th>
+        </tr></thead>
+        <tbody id="capacity-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== Tab 5: Attendance ===== -->
+  <section class="tab-panel" id="tab-4">
+    <div class="section-title">Per-Performance Attendance Log</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Date</th>
+          <th>Show</th>
+          <th>Venue</th>
+          <th class="num">Sold</th>
+          <th class="num">Attended</th>
+          <th class="num">% Attended</th>
+          <th class="num">Concessions</th>
+          <th class="num">Merch</th>
+          <th>House Manager</th>
+        </tr></thead>
+        <tbody id="attendance-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// =====================================================================
+// Utility helpers
+// =====================================================================
+const $ = id => document.getElementById(id);
+
+function fmt$(n) {
+  if (n == null || n === "") return "—";
+  const v = parseFloat(n);
+  if (isNaN(v)) return n;
+  return "$" + v.toLocaleString("en-US", {minimumFractionDigits: 0, maximumFractionDigits: 0});
+}
+function fmtN(n) {
+  if (n == null || n === "") return "—";
+  const v = parseFloat(n);
+  if (isNaN(v)) return n;
+  return v.toLocaleString("en-US");
+}
+function fmtPct(n) {
+  if (n == null || n === "") return "—";
+  const v = parseFloat(n);
+  if (isNaN(v)) return n;
+  return v.toFixed(1) + "%";
+}
+function td(txt, cls = "") {
+  return `<td${cls ? ` class="${cls}"` : ""}>${txt ?? "—"}</td>`;
+}
+
+// =====================================================================
+// Tab switching
+// =====================================================================
+function switchTab(idx) {
+  document.querySelectorAll(".tab-btn").forEach((b, i) => b.classList.toggle("active", i === idx));
+  document.querySelectorAll(".tab-panel").forEach((p, i) => p.classList.toggle("active", i === idx));
+}
+
+// =====================================================================
+// Sheets API fetch
+// =====================================================================
+async function fetchSheet(tabName) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(tabName)}?key=${CONFIG.API_KEY}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to load ${tabName}: ${res.status}`);
+  const json = await res.json();
+  const values = json.values || [];
+  if (values.length < 2) return [];
+  const headers = values[0];
+  return values.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = row[i] ?? ""; });
+    return obj;
+  });
+}
+
+// =====================================================================
+// Tab 1 — Daily Sales
+// =====================================================================
+function buildDailySales(ticketData) {
+  // Sort by date descending
+  const sorted = [...ticketData].sort((a, b) => b.date.localeCompare(a.date));
+  const dates = [...new Set(sorted.map(r => r.date))].slice(0, 3);
+  const latestDate = dates[0] || "";
+
+  // Yesterday cards
+  const yesterday = sorted.filter(r => r.source === "yesterday" && r.date === latestDate);
+  const cardsEl = $("yesterday-cards");
+  if (!yesterday.length) {
+    cardsEl.innerHTML = '<div class="empty">No yesterday data yet.</div>';
+  } else {
+    cardsEl.innerHTML = yesterday.map(r => `
+      <div class="metric-card">
+        <div class="label">${r.show}</div>
+        <div class="value">${fmt$(r.revenue)}</div>
+        <div class="sub">${fmtN(r.seats_sold)} seats · ${r.date}</div>
+      </div>`).join("");
+  }
+
+  // Trend table — last 3 days by show
+  const shows = [...new Set(sorted.filter(r => r.source === "yesterday").map(r => r.show))];
+  const headEl = $("trend-head");
+  const bodyEl = $("trend-body");
+
+  headEl.innerHTML = `<th>Show</th>${dates.map(d => `<th class="num">${d}</th>`).join("")}<th>Trend</th>`;
+
+  if (!shows.length) {
+    bodyEl.innerHTML = `<tr><td colspan="${dates.length + 2}" class="empty">No trend data yet.</td></tr>`;
+  } else {
+    bodyEl.innerHTML = shows.map(show => {
+      const vals = dates.map(d => {
+        const r = sorted.find(x => x.show === show && x.date === d && x.source === "yesterday");
+        return r ? parseFloat(r.revenue) || 0 : null;
+      });
+      const trendIcon = vals[0] != null && vals[1] != null
+        ? (vals[0] > vals[1] ? '<span class="trend-up">▲</span>'
+         : vals[0] < vals[1] ? '<span class="trend-down">▼</span>'
+         : '<span class="trend-flat">→</span>')
+        : "—";
+      return `<tr>
+        ${td(show, "show-name")}
+        ${vals.map(v => td(v != null ? fmt$(v) : "—", "num")).join("")}
+        <td style="text-align:center">${trendIcon}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  // To-date table
+  const toDate = sorted.filter(r => r.source === "to_date");
+  const latestToDateDate = toDate[0]?.date || "";
+  const latestToDate = toDate.filter(r => r.date === latestToDateDate);
+  const bodyTD = $("todate-body");
+  bodyTD.innerHTML = latestToDate.length
+    ? latestToDate.map(r => `<tr>
+        ${td(r.show, "show-name")}
+        ${td(fmt$(r.revenue), "num")}
+        ${td(fmtN(r.seats_sold), "num")}
+      </tr>`).join("")
+    : `<tr><td colspan="3" class="empty">No to-date data yet.</td></tr>`;
+}
+
+// =====================================================================
+// Tab 2 — Subscriptions
+// =====================================================================
+function buildSubscriptions(subsData, subResponseData) {
+  const sorted = [...subsData].sort((a, b) => b.date.localeCompare(a.date));
+  const latestDate = sorted[0]?.date || "";
+
+  const yesterday = sorted.filter(r => r.source === "yesterday" && r.date === latestDate);
+  const cardsEl = $("subs-yesterday-cards");
+  if (!yesterday.length) {
+    cardsEl.innerHTML = '<div class="empty">No subscription data yet.</div>';
+  } else {
+    const totalSubs = yesterday.reduce((s, r) => s + (parseFloat(r.subs_purchased) || 0), 0);
+    const totalRev = yesterday.reduce((s, r) => s + (parseFloat(r.revenue) || 0), 0);
+    cardsEl.innerHTML = `
+      <div class="metric-card">
+        <div class="label">Subs Purchased Yesterday</div>
+        <div class="value">${fmtN(totalSubs)}</div>
+        <div class="sub">${yesterday[0]?.date}</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Revenue Yesterday</div>
+        <div class="value">${fmt$(totalRev)}</div>
+        <div class="sub">All seasons</div>
+      </div>`;
+  }
+
+  const toDate = sorted.filter(r => r.source === "to_date");
+  const latestTD = toDate.filter(r => r.date === toDate[0]?.date);
+  $("subs-todate-body").innerHTML = latestTD.length
+    ? latestTD.map(r => `<tr>
+        ${td(r.show, "show-name")}
+        ${td(fmtN(r.subs_purchased), "num")}
+        ${td(fmt$(r.revenue), "num")}
+      </tr>`).join("")
+    : `<tr><td colspan="3" class="empty">No to-date data yet.</td></tr>`;
+
+  const latestSR = subResponseData.filter(r => r.date_ingested === subResponseData.slice().sort((a,b) => b.date_ingested.localeCompare(a.date_ingested))[0]?.date_ingested);
+  $("sub-response-body").innerHTML = latestSR.length
+    ? latestSR.map(r => `<tr>
+        ${td(r.category, "show-name")}
+        ${td(fmtN(r.seat_qty), "num")}
+        ${td(fmt$(r.amount), "num")}
+        ${td(fmtPct(r.renewal_pct), "num")}
+        ${td(fmtN(r.base_hh), "num")}
+      </tr>`).join("")
+    : `<tr><td colspan="5" class="empty">No renewal data yet.</td></tr>`;
+}
+
+// =====================================================================
+// Tab 3 — Revenue Projections
+// =====================================================================
+function buildRevenuePacing(pacingData, conservatoryData) {
+  const sorted = [...pacingData].sort((a, b) => b.date_ingested.localeCompare(a.date_ingested));
+  const latestDate = sorted[0]?.date_ingested || "";
+  const latest = sorted.filter(r => r.date_ingested === latestDate);
+
+  $("pacing-body").innerHTML = latest.length ? latest.map(r => {
+    const budget = parseFloat(r.budget) || 0;
+    const actual = parseFloat(r.actual_to_date) || 0;
+    const pct = budget > 0 ? Math.min(100, (actual / budget) * 100) : 0;
+    const barColor = pct >= 90 ? "#2e7d32" : pct >= 60 ? "#F6D053" : "#BD2E2A";
+    const variance = parseFloat(r.variance) || 0;
+    const varClass = variance >= 0 ? "var-pos" : "var-neg";
+
+    return `<tr>
+      ${td(r.category)}
+      ${td(r.subcategory || "—")}
+      ${td(fmt$(r.budget), "num")}
+      ${td(fmt$(r.actual_to_date), "num")}
+      <td>
+        <div class="progress-wrap">
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:${pct.toFixed(1)}%;background:${barColor}"></div>
+          </div>
+          <span class="progress-pct">${pct.toFixed(0)}%</span>
+        </div>
+      </td>
+      ${td(fmt$(r.forecast), "num")}
+      <td class="num ${varClass}">${fmt$(r.variance)}</td>
+    </tr>`;
+  }).join("") : `<tr><td colspan="7" class="empty">No pacing data yet.</td></tr>`;
+
+  const csorted = [...conservatoryData].sort((a, b) => b.date_ingested.localeCompare(a.date_ingested));
+  const cLatest = csorted.filter(r => r.date_ingested === csorted[0]?.date_ingested);
+  $("conservatory-body").innerHTML = cLatest.length ? cLatest.map(r => {
+    const variance = parseFloat(r.variance) || 0;
+    const varClass = variance >= 0 ? "var-pos" : "var-neg";
+    return `<tr>
+      ${td(r.program, "show-name")}
+      ${td(fmt$(r.budget), "num")}
+      ${td(fmt$(r.actual), "num")}
+      <td class="num ${varClass}">${fmt$(r.variance)}</td>
+      ${td(r.notes || "—")}
+    </tr>`;
+  }).join("") : `<tr><td colspan="5" class="empty">No conservatory data yet.</td></tr>`;
+}
+
+// =====================================================================
+// Tab 4 — Capacity Look-Ahead
+// =====================================================================
+function buildCapacity(capacityData) {
+  const today = new Date();
+  const cutoff = new Date(today);
+  cutoff.setDate(cutoff.getDate() + 14);
+
+  const todayStr = today.toLocaleDateString("en-US", {month:"2-digit",day:"2-digit",year:"2-digit"}).replace(/\//g,"/");
+
+  // Filter to upcoming 14 days
+  const upcoming = capacityData.filter(r => {
+    if (!r.perf_date) return false;
+    // perf_date is M/D/YY format
+    const parts = r.perf_date.split("/");
+    if (parts.length < 3) return false;
+    const yr = parts[2].length === 2 ? "20" + parts[2] : parts[2];
+    const d = new Date(`${yr}-${parts[0].padStart(2,"0")}-${parts[1].padStart(2,"0")}`);
+    return d >= today && d <= cutoff;
+  }).sort((a, b) => {
+    const parse = s => {
+      const p = s.split("/");
+      const yr = p[2].length === 2 ? "20" + p[2] : p[2];
+      return new Date(`${yr}-${p[0].padStart(2,"0")}-${p[1].padStart(2,"0")}`);
+    };
+    return parse(a.perf_date) - parse(b.perf_date);
+  });
+
+  $("capacity-body").innerHTML = upcoming.length ? upcoming.map(r => {
+    const pct = parseFloat(r.pct_sold) || 0;
+    const rowClass = pct >= 70 ? "cap-green" : pct >= 40 ? "cap-yellow" : "cap-red";
+    return `<tr class="${rowClass}">
+      ${td(r.perf_date)}
+      ${td(r.perf_time)}
+      ${td(r.show, "show-name")}
+      ${td(fmtN(r.capacity), "num")}
+      ${td(fmtPct(r.pct_sold), "num")}
+      ${td(fmtN(r.paid_count), "num")}
+      ${td(fmtN(r.avail_seats), "num")}
+      ${td(fmt$(r.ticket_amount), "num")}
+    </tr>`;
+  }).join("") : `<tr><td colspan="8" class="empty">No upcoming performances in the next 14 days.</td></tr>`;
+}
+
+// =====================================================================
+// Tab 5 — Attendance
+// =====================================================================
+function buildAttendance(attendanceData) {
+  const sorted = [...attendanceData].sort((a, b) => b.date.localeCompare(a.date));
+  $("attendance-body").innerHTML = sorted.length ? sorted.map(r => {
+    const sold = parseFloat(r.tickets_sold) || 0;
+    const attended = parseFloat(r.actual_attendance) || 0;
+    const pctAtt = sold > 0 ? ((attended / sold) * 100).toFixed(1) + "%" : "—";
+    return `<tr>
+      ${td(r.date)}
+      ${td(r.show, "show-name")}
+      ${td(r.venue)}
+      ${td(fmtN(r.tickets_sold), "num")}
+      ${td(fmtN(r.actual_attendance), "num")}
+      ${td(pctAtt, "num")}
+      ${td(fmt$(r.concessions_sales), "num")}
+      ${td(fmt$(r.merch_sales), "num")}
+      ${td(r.house_manager)}
+    </tr>`;
+  }).join("") : `<tr><td colspan="9" class="empty">No attendance records yet.</td></tr>`;
+}
+
+// =====================================================================
+// Last updated timestamp (from run_log)
+// =====================================================================
+function updateLastUpdated(runLog) {
+  const successful = runLog
+    .filter(r => r.status === "success" || r.status === "partial")
+    .sort((a, b) => b.run_timestamp.localeCompare(a.run_timestamp));
+  const el = $("last-updated");
+  if (successful.length) {
+    const ts = new Date(successful[0].run_timestamp);
+    el.textContent = "Last updated: " + ts.toLocaleString("en-US", {
+      month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+      timeZoneName: "short"
+    });
+  } else {
+    el.textContent = "Not yet updated";
+  }
+}
+
+// =====================================================================
+// Main data load
+// =====================================================================
+async function loadAllData() {
+  $("loading-overlay").style.display = "flex";
+  try {
+    const [tickets, subs, subResp, capacity, attendance, pacing, conservatory, runLog] =
+      await Promise.all([
+        fetchSheet("daily_ticket_sales"),
+        fetchSheet("subscriptions"),
+        fetchSheet("sub_response_summary"),
+        fetchSheet("performance_capacity"),
+        fetchSheet("attendance"),
+        fetchSheet("revenue_pacing"),
+        fetchSheet("conservatory"),
+        fetchSheet("run_log"),
+      ]);
+
+    buildDailySales(tickets);
+    buildSubscriptions(subs, subResp);
+    buildRevenuePacing(pacing, conservatory);
+    buildCapacity(capacity);
+    buildAttendance(attendance);
+    updateLastUpdated(runLog);
+  } catch (err) {
+    console.error(err);
+    $("last-updated").textContent = "Error loading data — check console";
+  } finally {
+    $("loading-overlay").style.display = "none";
+  }
+}
+
+// =====================================================================
+// Manual refresh
+// =====================================================================
+async function doRefresh() {
+  const btn = $("refresh-btn");
+  btn.classList.add("loading");
+  btn.disabled = true;
+  btn.querySelector(".btn-label").textContent = "Refreshing…";
+
+  try {
+    const res = await fetch(CONFIG.REFRESH_ENDPOINT, { method: "POST" });
+    const json = await res.json();
+    console.log("Refresh result:", json);
+    // Reload data after successful refresh
+    await loadAllData();
+  } catch (err) {
+    console.error("Refresh failed:", err);
+    alert("Refresh failed — see browser console for details.");
+  } finally {
+    btn.classList.remove("loading");
+    btn.disabled = false;
+    btn.querySelector(".btn-label").textContent = "Refresh";
+  }
+}
+
+// =====================================================================
+// Boot
+// =====================================================================
+window.addEventListener("DOMContentLoaded", loadAllData);
+</script>
+</body>
+</html>
