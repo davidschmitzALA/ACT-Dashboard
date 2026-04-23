@@ -537,7 +537,14 @@ async function fetchSheet(tabName) {
 // =====================================================================
 // Tab 1 — Daily Sales
 // =====================================================================
-function buildDailySales(ticketData) {
+function buildDailySales(ticketData, goalsData = []) {
+  const goalMap = {};
+  goalsData.forEach(g => {
+    if ((g.goal_key || "").startsWith("show_")) {
+      const showName = g.goal_key.replace(/^show_/, "").replace(/_/g, " ");
+      goalMap[showName] = parseFloat(g.value) || 0;
+    }
+  });
   // Sort by date descending
   const sorted = [...ticketData].sort((a, b) => b.date.localeCompare(a.date));
   const dates = [...new Set(sorted.map(r => r.date))].slice(0, 3);
@@ -594,7 +601,7 @@ function buildDailySales(ticketData) {
   const bodyTD = $("todate-body");
   bodyTD.innerHTML = latestToDate.length
     ? latestToDate.map(r => {
-        const goal = CONFIG.SHOW_GOALS[r.show] || 0;
+        const goal = goalMap[r.show] || 0;
         const rev = parseFloat(r.revenue) || 0;
         const varAmt = goal > 0 ? rev - goal : null;
         const varClass = varAmt == null ? "" : varAmt >= 0 ? "var-pos" : "var-neg";
@@ -612,7 +619,7 @@ function buildDailySales(ticketData) {
 // =====================================================================
 // Tab 2 — Subscriptions
 // =====================================================================
-function buildSubscriptions(subsData, subResponseData) {
+function buildSubscriptions(subsData, subResponseData, goalsData = []) {
   const sorted = [...subsData].sort((a, b) => b.date.localeCompare(a.date));
   const latestDate = sorted[0]?.date || "";
 
@@ -646,7 +653,8 @@ function buildSubscriptions(subsData, subResponseData) {
   const totalTDSubs = latestTD.reduce((s, r) => s + (parseFloat(r.subs_purchased) || 0), 0);
 
   // Goal cards row
-  const goal = CONFIG.SUBSCRIPTION_GOAL || 0;
+  const goalRow = goalsData.find(g => g.goal_key === "subscription_total");
+  const goal = parseFloat(goalRow?.value) || 0;
   const variance = goal > 0 ? totalTDRev - goal : null;
   const varClass = variance == null ? "" : variance >= 0 ? "trend-up" : "trend-down";
   const goalCardsEl = $("subs-goal-cards");
@@ -921,7 +929,7 @@ function updateLastUpdated(runLog) {
 async function loadAllData() {
   $("loading-overlay").style.display = "flex";
   try {
-    const [tickets, subs, subResp, capacity, attendance, pacing, conservatory, runLog] =
+    const [tickets, subs, subResp, capacity, attendance, pacing, conservatory, runLog, goals] =
       await Promise.all([
         fetchSheet("daily_ticket_sales"),
         fetchSheet("subscriptions"),
@@ -931,10 +939,11 @@ async function loadAllData() {
         fetchSheet("revenue_pacing"),
         fetchSheet("conservatory"),
         fetchSheet("run_log"),
+        fetchSheet("goals"),
       ]);
 
-    buildDailySales(tickets);
-    buildSubscriptions(subs, subResp);
+    buildDailySales(tickets, goals);
+    buildSubscriptions(subs, subResp, goals);
     buildRevenuePacing(pacing, conservatory);
     buildCapacity(capacity);
     buildAttendance(attendance);
