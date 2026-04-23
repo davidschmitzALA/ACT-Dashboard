@@ -289,6 +289,13 @@ const CONFIG = {
 
   // Cloud Run service URL (from deploy.sh output) + /refresh
   REFRESH_ENDPOINT: "https://act-dashboard-351082656422.us-west1.run.app/refresh",
+
+  // Revenue goals — update these when goals are set or change
+  SUBSCRIPTION_GOAL: 0,   // Annual subscription revenue goal (set to 0 until configured)
+  SHOW_GOALS: {
+    // "Show Name": goal_amount
+    // Example: "Hamlet": 350000
+  },
 };
 </script>
 
@@ -348,6 +355,8 @@ const CONFIG = {
         <thead><tr>
           <th>Show</th>
           <th class="num">Revenue To Date</th>
+          <th class="num">Goal</th>
+          <th class="num">Variance</th>
           <th class="num">Seats Sold To Date</th>
         </tr></thead>
         <tbody id="todate-body"></tbody>
@@ -359,6 +368,9 @@ const CONFIG = {
   <section class="tab-panel" id="tab-1">
     <div class="section-title">Yesterday's Subscription Sales</div>
     <div class="card-row" id="subs-yesterday-cards"></div>
+
+    <div class="section-title">Season-to-Date Summary</div>
+    <div class="card-row" id="subs-goal-cards"></div>
 
     <div class="section-title">Season-to-Date by Production</div>
     <div class="table-wrap">
@@ -576,15 +588,25 @@ function buildDailySales(ticketData) {
   // To-date table
   const toDate = sorted.filter(r => r.source === "to_date");
   const latestToDateDate = toDate[0]?.date || "";
-  const latestToDate = toDate.filter(r => r.date === latestToDateDate);
+  const latestToDate = toDate
+    .filter(r => r.date === latestToDateDate)
+    .sort((a, b) => (parseFloat(b.revenue) || 0) - (parseFloat(a.revenue) || 0));
   const bodyTD = $("todate-body");
   bodyTD.innerHTML = latestToDate.length
-    ? latestToDate.map(r => `<tr>
-        ${td(r.show, "show-name")}
-        ${td(fmt$(r.revenue), "num")}
-        ${td(fmtN(r.seats_sold), "num")}
-      </tr>`).join("")
-    : `<tr><td colspan="3" class="empty">No to-date data yet.</td></tr>`;
+    ? latestToDate.map(r => {
+        const goal = CONFIG.SHOW_GOALS[r.show] || 0;
+        const rev = parseFloat(r.revenue) || 0;
+        const varAmt = goal > 0 ? rev - goal : null;
+        const varClass = varAmt == null ? "" : varAmt >= 0 ? "var-pos" : "var-neg";
+        return `<tr>
+          ${td(r.show, "show-name")}
+          ${td(fmt$(r.revenue), "num")}
+          <td class="num">${goal > 0 ? fmt$(goal) : "—"}</td>
+          <td class="num ${varClass}">${varAmt != null ? fmt$(varAmt) : "—"}</td>
+          ${td(fmtN(r.seats_sold), "num")}
+        </tr>`;
+      }).join("")
+    : `<tr><td colspan="5" class="empty">No to-date data yet.</td></tr>`;
 }
 
 // =====================================================================
@@ -614,14 +636,50 @@ function buildSubscriptions(subsData, subResponseData) {
       </div>`;
   }
 
+  // Season-to-date totals
   const toDate = sorted.filter(r => r.source === "to_date");
-  const latestTD = toDate.filter(r => r.date === toDate[0]?.date);
+  const latestTD = toDate
+    .filter(r => r.date === toDate[0]?.date)
+    .sort((a, b) => (a.show || "").localeCompare(b.show || ""));
+
+  const totalTDRev = latestTD.reduce((s, r) => s + (parseFloat(r.revenue) || 0), 0);
+  const totalTDSubs = latestTD.reduce((s, r) => s + (parseFloat(r.subs_purchased) || 0), 0);
+
+  // Goal cards row
+  const goal = CONFIG.SUBSCRIPTION_GOAL || 0;
+  const variance = goal > 0 ? totalTDRev - goal : null;
+  const varClass = variance == null ? "" : variance >= 0 ? "trend-up" : "trend-down";
+  const goalCardsEl = $("subs-goal-cards");
+  if (goalCardsEl) {
+    goalCardsEl.innerHTML = `
+      <div class="metric-card">
+        <div class="label">Total Subscription Revenue</div>
+        <div class="value">${fmt$(totalTDRev)}</div>
+        <div class="sub">${fmtN(totalTDSubs)} subs to date</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Subscription Goal</div>
+        <div class="value">${goal > 0 ? fmt$(goal) : "—"}</div>
+        <div class="sub">Annual target</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Variance to Goal</div>
+        <div class="value ${varClass}">${variance != null ? fmt$(variance) : "—"}</div>
+        <div class="sub">${variance != null ? (variance >= 0 ? "Ahead" : "Behind") : "Set goal in CONFIG"}</div>
+      </div>`;
+  }
+
   $("subs-todate-body").innerHTML = latestTD.length
     ? latestTD.map(r => `<tr>
         ${td(r.show, "show-name")}
         ${td(fmtN(r.subs_purchased), "num")}
         ${td(fmt$(r.revenue), "num")}
-      </tr>`).join("")
+      </tr>`).join("") +
+      `<tr style="border-top:2px solid #000;font-weight:bold">
+        <td>TOTAL</td>
+        ${td(fmtN(totalTDSubs), "num")}
+        ${td(fmt$(totalTDRev), "num")}
+      </tr>`
     : `<tr><td colspan="3" class="empty">No to-date data yet.</td></tr>`;
 
   const latestSR = subResponseData.filter(r => r.date_ingested === subResponseData.slice().sort((a,b) => b.date_ingested.localeCompare(a.date_ingested))[0]?.date_ingested);
@@ -642,9 +700,70 @@ function buildSubscriptions(subsData, subResponseData) {
 function buildRevenuePacing(pacingData, conservatoryData) {
   const sorted = [...pacingData].sort((a, b) => b.date_ingested.localeCompare(a.date_ingested));
   const latestDate = sorted[0]?.date_ingested || "";
-  const latest = sorted.filter(r => r.date_ingested === latestDate);
+  let allRows = sorted.filter(r => r.date_ingested === latestDate);
 
-  $("pacing-body").innerHTML = latest.length ? latest.map(r => {
+  // Find GRAND TOTAL row before any filtering
+  const grandTotalRow = allRows.find(r =>
+    (r.category || "").toUpperCase().includes("GRAND TOTAL") ||
+    (r.subcategory || "").toUpperCase().includes("GRAND TOTAL")
+  );
+
+  // Cut off at "Report to Report Change"
+  const cutoffIdx = allRows.findIndex(r =>
+    (r.category || "").toLowerCase().includes("report to report") ||
+    (r.subcategory || "").toLowerCase().includes("report to report")
+  );
+  if (cutoffIdx !== -1) allRows = allRows.slice(0, cutoffIdx);
+
+  // Render rows grouped by section with subtotals
+  const SECTION_TITLES = ["conservatory tuition and fees", "development", "ticket sales"];
+  let html = "";
+  let sectionRows = [];
+  let currentSection = null;
+
+  function flushSection() {
+    if (!sectionRows.length) return;
+    const subBudget = sectionRows.reduce((s, r) => s + (parseFloat(r.budget) || 0), 0);
+    const subActual = sectionRows.reduce((s, r) => s + (parseFloat(r.actual_to_date) || 0), 0);
+    const subForecast = sectionRows.reduce((s, r) => s + (parseFloat(r.forecast) || 0), 0);
+    const subVariance = sectionRows.reduce((s, r) => s + (parseFloat(r.variance) || 0), 0);
+    const subPct = subBudget > 0 ? Math.min(100, (subActual / subBudget) * 100) : 0;
+    const barColor = subPct >= 90 ? "#2e7d32" : subPct >= 60 ? "#F6D053" : "#BD2E2A";
+    const varClass = subVariance >= 0 ? "var-pos" : "var-neg";
+    html += `<tr style="background:#f0f0f0;font-weight:bold;border-top:2px solid #ccc">
+      <td colspan="2" style="padding:7px 12px">Subtotal</td>
+      ${td(fmt$(subBudget), "num")}
+      ${td(fmt$(subActual), "num")}
+      <td>
+        <div class="progress-wrap">
+          <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${subPct.toFixed(1)}%;background:${barColor}"></div></div>
+          <span class="progress-pct">${subPct.toFixed(0)}%</span>
+        </div>
+      </td>
+      ${td(fmt$(subForecast), "num")}
+      <td class="num ${varClass}">${fmt$(subVariance)}</td>
+    </tr>
+    <tr><td colspan="7" style="height:12px;border:none;background:#f2f2f2"></td></tr>`;
+    sectionRows = [];
+  }
+
+  for (const r of allRows) {
+    const catLower = (r.category || "").toLowerCase();
+    const isTitle = SECTION_TITLES.some(t => catLower.includes(t)) &&
+                    !r.subcategory &&
+                    !parseFloat(r.budget) &&
+                    !parseFloat(r.actual_to_date);
+    const isSubtotalRow = catLower.includes("subtotal") || catLower.includes("total ");
+
+    if (isTitle) {
+      flushSection();
+      currentSection = r.category;
+      html += `<tr><td colspan="7" style="font-weight:bold;font-size:13px;background:#e8e8e8;padding:9px 12px;border-top:3px solid #000;letter-spacing:.3px">${r.category}</td></tr>`;
+      continue;
+    }
+
+    if (isSubtotalRow) continue; // we calculate our own subtotals
+
     const budget = parseFloat(r.budget) || 0;
     const actual = parseFloat(r.actual_to_date) || 0;
     const pct = budget > 0 ? Math.min(100, (actual / budget) * 100) : 0;
@@ -652,23 +771,48 @@ function buildRevenuePacing(pacingData, conservatoryData) {
     const variance = parseFloat(r.variance) || 0;
     const varClass = variance >= 0 ? "var-pos" : "var-neg";
 
-    return `<tr>
-      ${td(r.category)}
+    sectionRows.push(r);
+    html += `<tr>
+      ${td(r.category || "—")}
       ${td(r.subcategory || "—")}
       ${td(fmt$(r.budget), "num")}
       ${td(fmt$(r.actual_to_date), "num")}
       <td>
         <div class="progress-wrap">
-          <div class="progress-bar-bg">
-            <div class="progress-bar-fill" style="width:${pct.toFixed(1)}%;background:${barColor}"></div>
-          </div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct.toFixed(1)}%;background:${barColor}"></div></div>
           <span class="progress-pct">${pct.toFixed(0)}%</span>
         </div>
       </td>
       ${td(fmt$(r.forecast), "num")}
       <td class="num ${varClass}">${fmt$(r.variance)}</td>
     </tr>`;
-  }).join("") : `<tr><td colspan="7" class="empty">No pacing data yet.</td></tr>`;
+  }
+  flushSection();
+
+  // Grand Total row
+  if (grandTotalRow) {
+    const gtVariance = parseFloat(grandTotalRow.variance) || 0;
+    const gtClass = gtVariance >= 0 ? "var-pos" : "var-neg";
+    const gtBudget = parseFloat(grandTotalRow.budget) || 0;
+    const gtActual = parseFloat(grandTotalRow.actual_to_date) || 0;
+    const gtPct = gtBudget > 0 ? Math.min(100, (gtActual / gtBudget) * 100) : 0;
+    const gtBar = gtPct >= 90 ? "#2e7d32" : gtPct >= 60 ? "#F6D053" : "#BD2E2A";
+    html += `<tr style="background:#000;color:#F6D053;font-weight:bold;font-size:13px">
+      <td colspan="2" style="padding:9px 12px">GRAND TOTAL</td>
+      <td class="num" style="color:#F6D053">${fmt$(grandTotalRow.budget)}</td>
+      <td class="num" style="color:#F6D053">${fmt$(grandTotalRow.actual_to_date)}</td>
+      <td>
+        <div class="progress-wrap">
+          <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${gtPct.toFixed(1)}%;background:${gtBar}"></div></div>
+          <span class="progress-pct" style="color:#F6D053">${gtPct.toFixed(0)}%</span>
+        </div>
+      </td>
+      <td class="num" style="color:#F6D053">${fmt$(grandTotalRow.forecast)}</td>
+      <td class="num ${gtClass}" style="color:${gtVariance >= 0 ? '#81c784' : '#ef9a9a'}">${fmt$(grandTotalRow.variance)}</td>
+    </tr>`;
+  }
+
+  $("pacing-body").innerHTML = html || `<tr><td colspan="7" class="empty">No pacing data yet.</td></tr>`;
 
   const csorted = [...conservatoryData].sort((a, b) => b.date_ingested.localeCompare(a.date_ingested));
   const cLatest = csorted.filter(r => r.date_ingested === csorted[0]?.date_ingested);
