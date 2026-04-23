@@ -175,7 +175,8 @@ tr:last-child td { border-bottom: none; }
 tr:nth-child(even) td { background: #fafafa; }
 tr:hover td { background: #fffde7; }
 
-td.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.num { text-align: center; font-variant-numeric: tabular-nums; }
+th.num { text-align: center; }
 td.show-name { font-weight: bold; }
 
 /* ── Progress bar ── */
@@ -430,13 +431,13 @@ const CONFIG = {
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>Date</th>
-          <th>Time</th>
+          <th class="num">Date</th>
+          <th class="num">Time</th>
           <th>Show</th>
           <th class="num">Capacity</th>
-          <th class="num">% Sold</th>
           <th class="num">Paid Count</th>
           <th class="num">Available</th>
+          <th class="num">% Sold</th>
           <th class="num">Revenue</th>
         </tr></thead>
         <tbody id="capacity-body"></tbody>
@@ -450,7 +451,7 @@ const CONFIG = {
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>Date</th>
+          <th class="num">Date</th>
           <th>Show</th>
           <th>Venue</th>
           <th class="num">Sold</th>
@@ -716,13 +717,13 @@ function buildCapacity(capacityData) {
     const pct = parseFloat(r.pct_sold) || 0;
     const rowClass = pct >= 70 ? "cap-green" : pct >= 40 ? "cap-yellow" : "cap-red";
     return `<tr class="${rowClass}">
-      ${td(r.perf_date)}
-      ${td(r.perf_time)}
+      ${td(r.perf_date, "num")}
+      ${td(r.perf_time, "num")}
       ${td(r.show, "show-name")}
       ${td(fmtN(r.capacity), "num")}
-      ${td(fmtPct(r.pct_sold), "num")}
       ${td(fmtN(r.paid_count), "num")}
       ${td(fmtN(r.avail_seats), "num")}
+      ${td(fmtPct(r.pct_sold), "num")}
       ${td(fmt$(r.ticket_amount), "num")}
     </tr>`;
   }).join("") : `<tr><td colspan="8" class="empty">No upcoming performances in the next 14 days.</td></tr>`;
@@ -738,7 +739,7 @@ function buildAttendance(attendanceData) {
     const attended = parseFloat(r.actual_attendance) || 0;
     const pctAtt = sold > 0 ? ((attended / sold) * 100).toFixed(1) + "%" : "—";
     return `<tr>
-      ${td(r.date)}
+      ${td(r.date, "num")}
       ${td(r.show, "show-name")}
       ${td(r.venue)}
       ${td(fmtN(r.tickets_sold), "num")}
