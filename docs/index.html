@@ -539,10 +539,11 @@ async function fetchSheet(tabName) {
 // =====================================================================
 function buildDailySales(ticketData, goalsData = []) {
   const goalMap = {};
+  function parseGoalValue(v) { return parseFloat((v || "").replace(/[$,]/g, "")) || 0; }
   goalsData.forEach(g => {
     if ((g.goal_key || "").startsWith("show_")) {
       const showName = g.goal_key.replace(/^show_/, "").replace(/_/g, " ");
-      goalMap[showName] = parseFloat(g.value) || 0;
+      goalMap[showName] = parseGoalValue(g.value);
     }
   });
   // Sort by date descending
@@ -654,7 +655,7 @@ function buildSubscriptions(subsData, subResponseData, goalsData = []) {
 
   // Goal cards row
   const goalRow = goalsData.find(g => g.goal_key === "subscription_total");
-  const goal = parseFloat(goalRow?.value) || 0;
+  const goal = parseFloat((goalRow?.value || "").replace(/[$,]/g, "")) || 0;
   const variance = goal > 0 ? totalTDRev - goal : null;
   const varClass = variance == null ? "" : variance >= 0 ? "trend-up" : "trend-down";
   const goalCardsEl = $("subs-goal-cards");
