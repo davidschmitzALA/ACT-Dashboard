@@ -369,6 +369,14 @@ const CONFIG = {
     <div class="section-title">Yesterday's Subscription Sales</div>
     <div class="card-row" id="subs-yesterday-cards"></div>
 
+    <div class="section-title">3-Day Subscription Trend by Production</div>
+    <div class="table-wrap">
+      <table id="subs-trend-table">
+        <thead><tr id="subs-trend-head"></tr></thead>
+        <tbody id="subs-trend-body"></tbody>
+      </table>
+    </div>
+
     <div class="section-title">Season-to-Date Summary</div>
     <div class="card-row" id="subs-goal-cards"></div>
 
@@ -629,6 +637,35 @@ function buildSubscriptions(subsData, subResponseData, goalsData = []) {
         <div class="value">${fmt$(totalRev)}</div>
         <div class="sub">All seasons</div>
       </div>`;
+  }
+
+  // 3-day subscription trend
+  const trendDates = [...new Set(sorted.filter(r => r.source === "yesterday").map(r => r.date))].slice(0, 3);
+  const trendShows = [...new Set(sorted.filter(r => r.source === "yesterday").map(r => r.show))];
+  const sTrendHead = $("subs-trend-head");
+  const sTrendBody = $("subs-trend-body");
+  if (sTrendHead) {
+    sTrendHead.innerHTML = `<th>Production</th>${trendDates.map(d => `<th class="num">${d}</th>`).join("")}<th>Trend</th>`;
+    if (!trendShows.length) {
+      sTrendBody.innerHTML = `<tr><td colspan="${trendDates.length + 2}" class="empty">No trend data yet.</td></tr>`;
+    } else {
+      sTrendBody.innerHTML = trendShows.map(show => {
+        const vals = trendDates.map(d => {
+          const r = sorted.find(x => x.show === show && x.date === d && x.source === "yesterday");
+          return r ? (parseFloat(r.subs_purchased) || 0) : null;
+        });
+        const trendIcon = vals[0] != null && vals[1] != null
+          ? (vals[0] > vals[1] ? '<span class="trend-up">▲</span>'
+           : vals[0] < vals[1] ? '<span class="trend-down">▼</span>'
+           : '<span class="trend-flat">→</span>')
+          : "—";
+        return `<tr>
+          ${td(show, "show-name")}
+          ${vals.map(v => td(v != null ? fmtN(v) : "—", "num")).join("")}
+          <td style="text-align:center">${trendIcon}</td>
+        </tr>`;
+      }).join("");
+    }
   }
 
   // Season-to-date totals
