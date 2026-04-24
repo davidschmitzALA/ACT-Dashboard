@@ -565,7 +565,7 @@ function buildDailySales(ticketData, goalsData = []) {
   const headEl = $("trend-head");
   const bodyEl = $("trend-body");
 
-  headEl.innerHTML = `<th>Show</th>${dates.map(d => `<th class="num">${d}</th>`).join("")}<th>Trend</th>`;
+  headEl.innerHTML = `<th>Show</th>${dates.map(d => `<th class="num">${d}</th>`).join("")}<th class="num">Trend</th>`;
 
   if (!shows.length) {
     bodyEl.innerHTML = `<tr><td colspan="${dates.length + 2}" class="empty">No trend data yet.</td></tr>`;
@@ -583,7 +583,7 @@ function buildDailySales(ticketData, goalsData = []) {
       return `<tr>
         ${td(show, "show-name")}
         ${vals.map(v => td(v != null ? fmt$(v) : "—", "num")).join("")}
-        <td style="text-align:center">${trendIcon}</td>
+        <td class="num">${trendIcon}</td>
       </tr>`;
     }).join("");
   }
@@ -645,14 +645,14 @@ function buildSubscriptions(subsData, subResponseData, goalsData = []) {
   const sTrendHead = $("subs-trend-head");
   const sTrendBody = $("subs-trend-body");
   if (sTrendHead) {
-    sTrendHead.innerHTML = `<th>Production</th>${trendDates.map(d => `<th class="num">${d}</th>`).join("")}<th>Trend</th>`;
+    sTrendHead.innerHTML = `<th>Production</th>${trendDates.map(d => `<th class="num">${d}</th>`).join("")}<th class="num">Trend</th>`;
     if (!trendShows.length) {
       sTrendBody.innerHTML = `<tr><td colspan="${trendDates.length + 2}" class="empty">No trend data yet.</td></tr>`;
     } else {
       sTrendBody.innerHTML = trendShows.map(show => {
         const vals = trendDates.map(d => {
           const r = sorted.find(x => x.show === show && x.date === d && x.source === "yesterday");
-          return r ? (parseFloat(r.subs_purchased) || 0) : null;
+          return r ? (parseFloat(r.revenue) || 0) : null;
         });
         const trendIcon = vals[0] != null && vals[1] != null
           ? (vals[0] > vals[1] ? '<span class="trend-up">▲</span>'
@@ -661,8 +661,8 @@ function buildSubscriptions(subsData, subResponseData, goalsData = []) {
           : "—";
         return `<tr>
           ${td(show, "show-name")}
-          ${vals.map(v => td(v != null ? fmtN(v) : "—", "num")).join("")}
-          <td style="text-align:center">${trendIcon}</td>
+          ${vals.map(v => td(v != null ? fmt$(v) : "—", "num")).join("")}
+          <td class="num">${trendIcon}</td>
         </tr>`;
       }).join("");
     }
