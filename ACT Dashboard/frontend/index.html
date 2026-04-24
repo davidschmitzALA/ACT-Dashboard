@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>A.C.T. Operations Dashboard</title>
-<link rel="icon" type="image/x-icon" href="act_logo.ico">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23000000'/><text x='50' y='54' font-family='Tahoma,sans-serif' font-weight='bold' font-size='36' fill='%23F6D053' text-anchor='middle' dominant-baseline='middle'>ACT</text></svg>">
 <style>
 /* =====================================================================
    A.C.T. Brand Colors
@@ -393,19 +393,6 @@ const CONFIG = {
       </table>
     </div>
 
-    <div class="section-title">Renewal &amp; New Subscriber Response</div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr>
-          <th>Category</th>
-          <th class="num">Seat Qty</th>
-          <th class="num">Amount</th>
-          <th class="num">Renewal %</th>
-          <th class="num">Base HH</th>
-        </tr></thead>
-        <tbody id="sub-response-body"></tbody>
-      </table>
-    </div>
   </section>
 
   <!-- ===== Tab 3: Revenue Projections ===== -->
@@ -716,16 +703,6 @@ function buildSubscriptions(subsData, subResponseData, goalsData = []) {
       </tr>`
     : `<tr><td colspan="3" class="empty">No to-date data yet.</td></tr>`;
 
-  const latestSR = subResponseData.filter(r => r.date_ingested === subResponseData.slice().sort((a,b) => b.date_ingested.localeCompare(a.date_ingested))[0]?.date_ingested);
-  $("sub-response-body").innerHTML = latestSR.length
-    ? latestSR.map(r => `<tr>
-        ${td(r.category, "show-name")}
-        ${td(fmtN(r.seat_qty), "num")}
-        ${td(fmt$(r.amount), "num")}
-        ${td(fmtPct(r.renewal_pct), "num")}
-        ${td(fmtN(r.base_hh), "num")}
-      </tr>`).join("")
-    : `<tr><td colspan="5" class="empty">No renewal data yet.</td></tr>`;
 }
 
 // =====================================================================
