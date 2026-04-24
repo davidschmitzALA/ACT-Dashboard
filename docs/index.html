@@ -417,19 +417,6 @@ const CONFIG = {
       </table>
     </div>
 
-    <div class="section-title">Conservatory Programs</div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr>
-          <th>Program</th>
-          <th class="num">Budget</th>
-          <th class="num">Actual</th>
-          <th class="num">Variance</th>
-          <th>Notes</th>
-        </tr></thead>
-        <tbody id="conservatory-body"></tbody>
-      </table>
-    </div>
   </section>
 
   <!-- ===== Tab 4: Capacity Look-Ahead ===== -->
@@ -726,9 +713,11 @@ function buildRevenuePacing(pacingData, conservatoryData) {
 
   // Render rows grouped by section with subtotals
   const SECTION_TITLES = ["conservatory tuition and fees", "development", "ticket sales"];
+  const STANDALONE_ROWS = ["space rentals", "concessions"]; // bold standalone, not part of any section
   let html = "";
   let sectionRows = [];
   let currentSection = null;
+  let allDataRows = []; // track all rows for grand total calculation
 
   function flushSection() {
     if (!sectionRows.length) return;
@@ -762,12 +751,38 @@ function buildRevenuePacing(pacingData, conservatoryData) {
                     !r.subcategory &&
                     !parseFloat(r.budget) &&
                     !parseFloat(r.actual_to_date);
+    const isStandalone = STANDALONE_ROWS.some(t => catLower.includes(t));
     const isSubtotalRow = catLower.includes("subtotal") || catLower.includes("total ");
 
     if (isTitle) {
       flushSection();
       currentSection = r.category;
       html += `<tr><td colspan="7" style="font-weight:bold;font-size:13px;background:#e8e8e8;padding:9px 12px;border-top:3px solid #000;letter-spacing:.3px">${r.category}</td></tr>`;
+      continue;
+    }
+
+    if (isStandalone) {
+      flushSection(); // close any open section first
+      const budget = parseFloat(r.budget) || 0;
+      const actual = parseFloat(r.actual_to_date) || 0;
+      const pct = budget > 0 ? Math.min(100, (actual / budget) * 100) : 0;
+      const barColor = pct >= 90 ? "#2e7d32" : pct >= 60 ? "#F6D053" : "#BD2E2A";
+      const variance = parseFloat(r.variance) || 0;
+      const varClass = variance >= 0 ? "var-pos" : "var-neg";
+      allDataRows.push(r);
+      html += `<tr style="font-weight:bold;background:#f5f5f5;border-top:2px solid #ccc">
+        <td colspan="2" style="padding:8px 12px">${r.category}</td>
+        ${td(fmt$(r.budget), "num")}
+        ${td(fmt$(r.actual_to_date), "num")}
+        <td>
+          <div class="progress-wrap">
+            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct.toFixed(1)}%;background:${barColor}"></div></div>
+            <span class="progress-pct">${pct.toFixed(0)}%</span>
+          </div>
+        </td>
+        ${td(fmt$(r.forecast), "num")}
+        <td class="num ${varClass}">${fmt$(r.variance)}</td>
+      </tr>`;
       continue;
     }
 
@@ -781,6 +796,7 @@ function buildRevenuePacing(pacingData, conservatoryData) {
     const varClass = variance >= 0 ? "var-pos" : "var-neg";
 
     sectionRows.push(r);
+    allDataRows.push(r);
     html += `<tr>
       ${td(r.category || "—")}
       ${td(r.subcategory || "—")}
@@ -798,44 +814,28 @@ function buildRevenuePacing(pacingData, conservatoryData) {
   }
   flushSection();
 
-  // Grand Total row
-  if (grandTotalRow) {
-    const gtVariance = parseFloat(grandTotalRow.variance) || 0;
-    const gtClass = gtVariance >= 0 ? "var-pos" : "var-neg";
-    const gtBudget = parseFloat(grandTotalRow.budget) || 0;
-    const gtActual = parseFloat(grandTotalRow.actual_to_date) || 0;
-    const gtPct = gtBudget > 0 ? Math.min(100, (gtActual / gtBudget) * 100) : 0;
-    const gtBar = gtPct >= 90 ? "#2e7d32" : gtPct >= 60 ? "#F6D053" : "#BD2E2A";
-    html += `<tr style="background:#000;color:#F6D053;font-weight:bold;font-size:13px">
-      <td colspan="2" style="padding:9px 12px">GRAND TOTAL</td>
-      <td class="num" style="color:#F6D053">${fmt$(grandTotalRow.budget)}</td>
-      <td class="num" style="color:#F6D053">${fmt$(grandTotalRow.actual_to_date)}</td>
-      <td>
-        <div class="progress-wrap">
-          <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${gtPct.toFixed(1)}%;background:${gtBar}"></div></div>
-          <span class="progress-pct" style="color:#F6D053">${gtPct.toFixed(0)}%</span>
-        </div>
-      </td>
-      <td class="num" style="color:#F6D053">${fmt$(grandTotalRow.forecast)}</td>
-      <td class="num ${gtClass}" style="color:${gtVariance >= 0 ? '#81c784' : '#ef9a9a'}">${fmt$(grandTotalRow.variance)}</td>
-    </tr>`;
-  }
+  // Grand Total row — use detected row or calculate from all data rows
+  const gtBudget   = grandTotalRow ? (parseFloat(grandTotalRow.budget) || 0)        : allDataRows.reduce((s, r) => s + (parseFloat(r.budget) || 0), 0);
+  const gtActual   = grandTotalRow ? (parseFloat(grandTotalRow.actual_to_date) || 0) : allDataRows.reduce((s, r) => s + (parseFloat(r.actual_to_date) || 0), 0);
+  const gtForecast = grandTotalRow ? (parseFloat(grandTotalRow.forecast) || 0)       : allDataRows.reduce((s, r) => s + (parseFloat(r.forecast) || 0), 0);
+  const gtVariance = grandTotalRow ? (parseFloat(grandTotalRow.variance) || 0)       : allDataRows.reduce((s, r) => s + (parseFloat(r.variance) || 0), 0);
+  const gtPct = gtBudget > 0 ? Math.min(100, (gtActual / gtBudget) * 100) : 0;
+  const gtBar = gtPct >= 90 ? "#2e7d32" : gtPct >= 60 ? "#F6D053" : "#BD2E2A";
+  html += `<tr style="background:#000;color:#F6D053;font-weight:bold;font-size:13px">
+    <td colspan="2" style="padding:9px 12px">GRAND TOTAL</td>
+    <td class="num" style="color:#F6D053">${fmt$(gtBudget)}</td>
+    <td class="num" style="color:#F6D053">${fmt$(gtActual)}</td>
+    <td>
+      <div class="progress-wrap">
+        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${gtPct.toFixed(1)}%;background:${gtBar}"></div></div>
+        <span class="progress-pct" style="color:#F6D053">${gtPct.toFixed(0)}%</span>
+      </div>
+    </td>
+    <td class="num" style="color:#F6D053">${fmt$(gtForecast)}</td>
+    <td class="num" style="color:${gtVariance >= 0 ? '#81c784' : '#ef9a9a'}">${fmt$(gtVariance)}</td>
+  </tr>`;
 
   $("pacing-body").innerHTML = html || `<tr><td colspan="7" class="empty">No pacing data yet.</td></tr>`;
-
-  const csorted = [...conservatoryData].sort((a, b) => b.date_ingested.localeCompare(a.date_ingested));
-  const cLatest = csorted.filter(r => r.date_ingested === csorted[0]?.date_ingested);
-  $("conservatory-body").innerHTML = cLatest.length ? cLatest.map(r => {
-    const variance = parseFloat(r.variance) || 0;
-    const varClass = variance >= 0 ? "var-pos" : "var-neg";
-    return `<tr>
-      ${td(r.program, "show-name")}
-      ${td(fmt$(r.budget), "num")}
-      ${td(fmt$(r.actual), "num")}
-      <td class="num ${varClass}">${fmt$(r.variance)}</td>
-      ${td(r.notes || "—")}
-    </tr>`;
-  }).join("") : `<tr><td colspan="5" class="empty">No conservatory data yet.</td></tr>`;
 }
 
 // =====================================================================
