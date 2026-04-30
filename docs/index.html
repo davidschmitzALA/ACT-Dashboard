@@ -402,7 +402,6 @@ const CONFIG = {
       <table>
         <thead><tr>
           <th>Category</th>
-          <th>Line Item</th>
           <th class="num">Budget</th>
           <th class="num">Actual To Date</th>
           <th>Progress</th>
@@ -756,7 +755,7 @@ function buildRevenuePacing(pacingData, conservatoryData) {
       ${td(fmt$(subForecast), "num")}
       <td class="num ${varClass}">${fmt$(subVariance)}</td>
     </tr>
-    <tr><td colspan="7" style="height:12px;border:none;background:#f2f2f2"></td></tr>`;
+    <tr><td colspan="6" style="height:12px;border:none;background:#f2f2f2"></td></tr>`;
     sectionRows = [];
   }
 
@@ -772,7 +771,7 @@ function buildRevenuePacing(pacingData, conservatoryData) {
     if (isTitle) {
       flushSection();
       currentSection = r.category;
-      html += `<tr><td colspan="7" style="font-weight:bold;font-size:13px;background:#e8e8e8;padding:9px 12px;border-top:3px solid #000;letter-spacing:.3px">${r.category}</td></tr>`;
+      html += `<tr><td colspan="6" style="font-weight:bold;font-size:13px;background:#e8e8e8;padding:9px 12px;border-top:3px solid #000;letter-spacing:.3px">${r.category}</td></tr>`;
       continue;
     }
 
@@ -814,7 +813,6 @@ function buildRevenuePacing(pacingData, conservatoryData) {
     allDataRows.push(r);
     html += `<tr>
       ${td(r.category || "—")}
-      ${td(r.subcategory || "—")}
       ${td(fmt$(r.budget), "num")}
       ${td(fmt$(r.actual_to_date), "num")}
       <td>
@@ -850,7 +848,7 @@ function buildRevenuePacing(pacingData, conservatoryData) {
     <td class="num" style="color:${gtVariance >= 0 ? '#81c784' : '#ef9a9a'}">${fmt$(gtVariance)}</td>
   </tr>`;
 
-  $("pacing-body").innerHTML = html || `<tr><td colspan="7" class="empty">No pacing data yet.</td></tr>`;
+  $("pacing-body").innerHTML = html || `<tr><td colspan="6" class="empty">No pacing data yet.</td></tr>`;
 }
 
 // =====================================================================
