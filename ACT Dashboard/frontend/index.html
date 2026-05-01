@@ -743,7 +743,7 @@ function buildRevenuePacing(pacingData, conservatoryData) {
     const barColor = subPct >= 90 ? "#2e7d32" : subPct >= 60 ? "#F6D053" : "#BD2E2A";
     const varClass = subVariance >= 0 ? "var-pos" : "var-neg";
     html += `<tr style="background:#f0f0f0;font-weight:bold;border-top:2px solid #ccc">
-      <td colspan="2" style="padding:7px 12px">Subtotal</td>
+      <td colspan="1" style="padding:7px 12px">Subtotal</td>
       ${td(fmt$(subBudget), "num")}
       ${td(fmt$(subActual), "num")}
       <td>
@@ -785,7 +785,7 @@ function buildRevenuePacing(pacingData, conservatoryData) {
       const varClass = variance >= 0 ? "var-pos" : "var-neg";
       allDataRows.push(r);
       html += `<tr style="font-weight:bold;background:#f5f5f5;border-top:2px solid #ccc">
-        <td colspan="2" style="padding:8px 12px">${r.category}</td>
+        <td colspan="1" style="padding:8px 12px">${r.category}</td>
         ${td(fmt$(r.budget), "num")}
         ${td(fmt$(r.actual_to_date), "num")}
         <td>
@@ -835,7 +835,7 @@ function buildRevenuePacing(pacingData, conservatoryData) {
   const gtPct = gtBudget > 0 ? Math.min(100, (gtActual / gtBudget) * 100) : 0;
   const gtBar = gtPct >= 90 ? "#2e7d32" : gtPct >= 60 ? "#F6D053" : "#BD2E2A";
   html += `<tr style="background:#000;color:#F6D053;font-weight:bold;font-size:13px">
-    <td colspan="2" style="padding:9px 12px">GRAND TOTAL</td>
+    <td colspan="1" style="padding:9px 12px">GRAND TOTAL</td>
     <td class="num" style="color:#F6D053">${fmt$(gtBudget)}</td>
     <td class="num" style="color:#F6D053">${fmt$(gtActual)}</td>
     <td>
