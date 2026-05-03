@@ -342,7 +342,7 @@ const CONFIG = {
     <div class="section-title">Yesterday's Single Ticket Sales</div>
     <div class="card-row" id="yesterday-cards"></div>
 
-    <div class="section-title">3-Day Sales Trend by Show</div>
+    <div class="section-title">4-Day Sales Trend by Show</div>
     <div class="table-wrap">
       <table id="trend-table">
         <thead><tr id="trend-head"></tr></thead>
@@ -370,7 +370,7 @@ const CONFIG = {
     <div class="section-title">Yesterday's Subscription Sales</div>
     <div class="card-row" id="subs-yesterday-cards"></div>
 
-    <div class="section-title">3-Day Subscription Trend by Production</div>
+    <div class="section-title">4-Day Subscription Trend by Production</div>
     <div class="table-wrap">
       <table id="subs-trend-table">
         <thead><tr id="subs-trend-head"></tr></thead>
@@ -530,7 +530,7 @@ function buildDailySales(ticketData, goalsData = []) {
   });
   // Sort by date descending
   const sorted = [...ticketData].sort((a, b) => b.date.localeCompare(a.date));
-  const dates = [...new Set(sorted.map(r => r.date))].slice(0, 3);
+  const dates = [...new Set(sorted.map(r => r.date))].slice(0, 4);
   const latestDate = dates[0] || "";
 
   // Yesterday cards
@@ -626,7 +626,7 @@ function buildSubscriptions(subsData, subResponseData, goalsData = []) {
   }
 
   // 3-day subscription trend
-  const trendDates = [...new Set(sorted.filter(r => r.source === "yesterday").map(r => r.date))].slice(0, 3);
+  const trendDates = [...new Set(sorted.filter(r => r.source === "yesterday").map(r => r.date))].slice(0, 4);
   const trendShows = [...new Set(sorted.filter(r => r.source === "yesterday").map(r => r.show))];
   const sTrendHead = $("subs-trend-head");
   const sTrendBody = $("subs-trend-body");
