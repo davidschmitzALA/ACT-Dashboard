@@ -558,10 +558,9 @@ function buildDailySales(ticketData, goalsData = []) {
     bodyEl.innerHTML = `<tr><td colspan="${dates.length + 2}" class="empty">No trend data yet.</td></tr>`;
   } else {
     bodyEl.innerHTML = shows.map(show => {
-      const vals = dates.map(d => {
-        const r = sorted.find(x => x.show === show && x.date === d && x.source === "yesterday");
-        return r ? parseFloat(r.revenue) || 0 : null;
-      });
+      const rows = dates.map(d => sorted.find(x => x.show === show && x.date === d && x.source === "yesterday") || null);
+      const vals = rows.map(r => r ? parseFloat(r.revenue) || 0 : null);
+      const seats = rows.map(r => r ? parseFloat(r.seats_sold) || 0 : null);
       const trendIcon = vals[0] != null && vals[1] != null
         ? (vals[0] > vals[1] ? '<span class="trend-up">▲</span>'
          : vals[0] < vals[1] ? '<span class="trend-down">▼</span>'
@@ -569,7 +568,7 @@ function buildDailySales(ticketData, goalsData = []) {
         : "—";
       return `<tr>
         ${td(show, "show-name")}
-        ${vals.map(v => td(v != null ? fmt$(v) : "—", "num")).join("")}
+        ${rows.map((r, i) => `<td class="num">${vals[i] != null ? fmt$(vals[i]) : "—"}<br><span style="font-size:11px;color:#888">${seats[i] != null ? fmtN(seats[i]) + " seats" : ""}</span></td>`).join("")}
         <td class="num">${trendIcon}</td>
       </tr>`;
     }).join("");
@@ -637,10 +636,9 @@ function buildSubscriptions(subsData, subResponseData, goalsData = []) {
       sTrendBody.innerHTML = `<tr><td colspan="${trendDates.length + 2}" class="empty">No trend data yet.</td></tr>`;
     } else {
       sTrendBody.innerHTML = trendShows.map(show => {
-        const vals = trendDates.map(d => {
-          const r = sorted.find(x => x.show === show && x.date === d && x.source === "yesterday");
-          return r ? (parseFloat(r.revenue) || 0) : null;
-        });
+        const rows = trendDates.map(d => sorted.find(x => x.show === show && x.date === d && x.source === "yesterday") || null);
+        const vals = rows.map(r => r ? (parseFloat(r.revenue) || 0) : null);
+        const subs = rows.map(r => r ? (parseFloat(r.subs_purchased) || 0) : null);
         const trendIcon = vals[0] != null && vals[1] != null
           ? (vals[0] > vals[1] ? '<span class="trend-up">▲</span>'
            : vals[0] < vals[1] ? '<span class="trend-down">▼</span>'
@@ -648,7 +646,7 @@ function buildSubscriptions(subsData, subResponseData, goalsData = []) {
           : "—";
         return `<tr>
           ${td(show, "show-name")}
-          ${vals.map(v => td(v != null ? fmt$(v) : "—", "num")).join("")}
+          ${rows.map((r, i) => `<td class="num">${vals[i] != null ? fmt$(vals[i]) : "—"}<br><span style="font-size:11px;color:#888">${subs[i] != null ? fmtN(subs[i]) + " subs" : ""}</span></td>`).join("")}
           <td class="num">${trendIcon}</td>
         </tr>`;
       }).join("");
