@@ -430,8 +430,8 @@ const CONFIG = {
           <th>Show</th>
           <th class="num">Capacity</th>
           <th class="num">Paid Count</th>
-          <th class="num">Available</th>
           <th class="num">% Sold</th>
+          <th class="num">Comps</th>
           <th class="num">Revenue</th>
         </tr></thead>
         <tbody id="capacity-body"></tbody>
@@ -902,8 +902,8 @@ function buildCapacity(capacityData) {
       ${td(r.show, "show-name")}
       ${td(fmtN(r.capacity), "num")}
       ${td(fmtN(r.paid_count), "num")}
-      ${td(fmtN(r.avail_seats), "num")}
       ${td(fmtPct(r.pct_sold), "num")}
+      ${td(fmtN(r.comps), "num")}
       ${td(fmt$(r.ticket_amount), "num")}
     </tr>`;
   });
