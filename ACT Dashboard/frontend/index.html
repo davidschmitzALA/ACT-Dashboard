@@ -416,7 +416,7 @@ const CONFIG = {
 
   <!-- ===== Tab 4: Capacity Look-Ahead ===== -->
   <section class="tab-panel" id="tab-3">
-    <div class="section-title">Upcoming Performances — Next 14 Days</div>
+    <div class="section-title">Upcoming Performances</div>
     <div style="display:flex;gap:16px;margin-bottom:14px;font-size:12px;align-items:center;">
       <span><span class="badge badge-green">●</span> 70%+ sold</span>
       <span><span class="badge badge-yellow">●</span> 40–69% sold</span>
@@ -854,33 +854,49 @@ function buildRevenuePacing(pacingData, conservatoryData) {
 // =====================================================================
 function buildCapacity(capacityData) {
   const today = new Date();
-  const cutoff = new Date(today);
-  cutoff.setDate(cutoff.getDate() + 14);
+  today.setHours(0, 0, 0, 0);
 
-  const todayStr = today.toLocaleDateString("en-US", {month:"2-digit",day:"2-digit",year:"2-digit"}).replace(/\//g,"/");
+  function parseDate(s) {
+    if (!s) return null;
+    const p = s.split("/");
+    if (p.length < 3) return null;
+    const yr = p[2].length === 2 ? "20" + p[2] : p[2];
+    return new Date(`${yr}-${p[0].padStart(2,"0")}-${p[1].padStart(2,"0")}`);
+  }
 
-  // Filter to upcoming 14 days
-  const upcoming = capacityData.filter(r => {
-    if (!r.perf_date) return false;
-    // perf_date is M/D/YY format
-    const parts = r.perf_date.split("/");
-    if (parts.length < 3) return false;
-    const yr = parts[2].length === 2 ? "20" + parts[2] : parts[2];
-    const d = new Date(`${yr}-${parts[0].padStart(2,"0")}-${parts[1].padStart(2,"0")}`);
-    return d >= today && d <= cutoff;
-  }).sort((a, b) => {
-    const parse = s => {
-      const p = s.split("/");
-      const yr = p[2].length === 2 ? "20" + p[2] : p[2];
-      return new Date(`${yr}-${p[0].padStart(2,"0")}-${p[1].padStart(2,"0")}`);
-    };
-    return parse(a.perf_date) - parse(b.perf_date);
-  });
+  function weekKey(s) {
+    const d = parseDate(s);
+    if (!d) return "";
+    const day = d.getDay(); // 0=Sun
+    const mon = new Date(d);
+    mon.setDate(d.getDate() - day); // start of week (Sun)
+    return mon.toISOString().slice(0, 10);
+  }
 
-  $("capacity-body").innerHTML = upcoming.length ? upcoming.map(r => {
+  // Filter to today and future only, sorted ascending
+  const upcoming = capacityData
+    .filter(r => { const d = parseDate(r.perf_date); return d && d >= today; })
+    .sort((a, b) => parseDate(a.perf_date) - parseDate(b.perf_date));
+
+  if (!upcoming.length) {
+    $("capacity-body").innerHTML = `<tr><td colspan="8" class="empty">No upcoming performances found.</td></tr>`;
+    return;
+  }
+
+  let html = "";
+  let lastWeek = null;
+
+  upcoming.forEach(r => {
+    const wk = weekKey(r.perf_date);
+    if (lastWeek !== null && wk !== lastWeek) {
+      // Insert week separator
+      html += `<tr><td colspan="8" style="height:0;padding:0;border-top:2px solid #aaa;background:#e0e0e0"></td></tr>`;
+    }
+    lastWeek = wk;
+
     const pct = parseFloat(r.pct_sold) || 0;
     const rowClass = pct >= 70 ? "cap-green" : pct >= 40 ? "cap-yellow" : "cap-red";
-    return `<tr class="${rowClass}">
+    html += `<tr class="${rowClass}">
       ${td(r.perf_date, "num")}
       ${td(r.perf_time, "num")}
       ${td(r.show, "show-name")}
@@ -890,7 +906,9 @@ function buildCapacity(capacityData) {
       ${td(fmtPct(r.pct_sold), "num")}
       ${td(fmt$(r.ticket_amount), "num")}
     </tr>`;
-  }).join("") : `<tr><td colspan="8" class="empty">No upcoming performances in the next 14 days.</td></tr>`;
+  });
+
+  $("capacity-body").innerHTML = html;
 }
 
 // =====================================================================
