@@ -915,7 +915,17 @@ function buildCapacity(capacityData) {
 // Tab 5 — Attendance
 // =====================================================================
 function buildAttendance(attendanceData) {
-  const sorted = [...attendanceData].sort((a, b) => b.date.localeCompare(a.date));
+  function attDate(s) {
+    if (!s) return 0;
+    // Handle M/D/YY (e.g. 5/18/26) → normalize to full year
+    const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (mdy) {
+      const yr = mdy[3].length === 2 ? "20" + mdy[3] : mdy[3];
+      return new Date(`${yr}-${mdy[1].padStart(2,"0")}-${mdy[2].padStart(2,"0")}`).getTime();
+    }
+    return new Date(s).getTime() || 0;
+  }
+  const sorted = [...attendanceData].sort((a, b) => attDate(b.date) - attDate(a.date));
   $("attendance-body").innerHTML = sorted.length ? sorted.map(r => {
     const sold = parseFloat(r.tickets_sold) || 0;
     const attended = parseFloat(r.actual_attendance) || 0;
