@@ -917,13 +917,19 @@ function buildCapacity(capacityData) {
 function buildAttendance(attendanceData) {
   function attDate(s) {
     if (!s) return 0;
-    // Handle M/D/YY (e.g. 5/18/26) → normalize to full year
-    const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    // Strip trailing time info like " at 2:00pm"
+    const clean = s.replace(/\s+at\s+\d+:\d+\w*/i, "").trim();
+    // Handle M/D/YY or M/D/YYYY (e.g. 5/18/26)
+    const mdy = clean.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
     if (mdy) {
       const yr = mdy[3].length === 2 ? "20" + mdy[3] : mdy[3];
       return new Date(`${yr}-${mdy[1].padStart(2,"0")}-${mdy[2].padStart(2,"0")}`).getTime();
     }
-    return new Date(s).getTime() || 0;
+    // Handle ISO YYYY-MM-DD (treat as local midnight to avoid UTC offset issues)
+    const iso = clean.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (iso) return new Date(iso[1], iso[2] - 1, iso[3]).getTime();
+    // Fall back to JS date parsing (handles "May 9, 2026" etc.)
+    return new Date(clean).getTime() || 0;
   }
   const sorted = [...attendanceData].sort((a, b) => attDate(b.date) - attDate(a.date));
   $("attendance-body").innerHTML = sorted.length ? sorted.map(r => {
