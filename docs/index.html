@@ -430,8 +430,8 @@ const CONFIG = {
           <th>Show</th>
           <th class="num">Capacity</th>
           <th class="num">Paid Count</th>
-          <th class="num">Available</th>
           <th class="num">% Sold</th>
+          <th class="num">Comps</th>
           <th class="num">Revenue</th>
         </tr></thead>
         <tbody id="capacity-body"></tbody>
@@ -902,8 +902,8 @@ function buildCapacity(capacityData) {
       ${td(r.show, "show-name")}
       ${td(fmtN(r.capacity), "num")}
       ${td(fmtN(r.paid_count), "num")}
-      ${td(fmtN(r.avail_seats), "num")}
       ${td(fmtPct(r.pct_sold), "num")}
+      ${td(fmtN(r.comps), "num")}
       ${td(fmt$(r.ticket_amount), "num")}
     </tr>`;
   });
@@ -915,7 +915,23 @@ function buildCapacity(capacityData) {
 // Tab 5 — Attendance
 // =====================================================================
 function buildAttendance(attendanceData) {
-  const sorted = [...attendanceData].sort((a, b) => b.date.localeCompare(a.date));
+  function attDate(s) {
+    if (!s) return 0;
+    // Strip trailing time info like " at 2:00pm"
+    const clean = s.replace(/\s+at\s+\d+:\d+\w*/i, "").trim();
+    // Handle M/D/YY or M/D/YYYY (e.g. 5/18/26)
+    const mdy = clean.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (mdy) {
+      const yr = mdy[3].length === 2 ? "20" + mdy[3] : mdy[3];
+      return new Date(`${yr}-${mdy[1].padStart(2,"0")}-${mdy[2].padStart(2,"0")}`).getTime();
+    }
+    // Handle ISO YYYY-MM-DD (treat as local midnight to avoid UTC offset issues)
+    const iso = clean.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (iso) return new Date(iso[1], iso[2] - 1, iso[3]).getTime();
+    // Fall back to JS date parsing (handles "May 9, 2026" etc.)
+    return new Date(clean).getTime() || 0;
+  }
+  const sorted = [...attendanceData].sort((a, b) => attDate(b.date) - attDate(a.date));
   $("attendance-body").innerHTML = sorted.length ? sorted.map(r => {
     const sold = parseFloat(r.tickets_sold) || 0;
     const attended = parseFloat(r.actual_attendance) || 0;
