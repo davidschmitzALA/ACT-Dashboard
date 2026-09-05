@@ -81,3 +81,6 @@ Thumbs.db
 
 # Claude Code internal files
 .claude/
+
+# Real ACT report files used for parser debugging — never commit
+ACT Dashboard/samples/
