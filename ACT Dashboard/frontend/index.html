@@ -594,7 +594,21 @@ function buildDailySales(ticketData, goalsData = []) {
           <td class="num ${varClass}">${varAmt != null ? fmt$(varAmt) : "—"}</td>
           ${td(fmtN(r.seats_sold), "num")}
         </tr>`;
-      }).join("")
+      }).join("") +
+      (() => {
+        const totRev = latestToDate.reduce((s, r) => s + (parseFloat(r.revenue) || 0), 0);
+        const totSeats = latestToDate.reduce((s, r) => s + (parseFloat(r.seats_sold) || 0), 0);
+        const totGoal = latestToDate.reduce((s, r) => s + (goalMap[r.show] || 0), 0);
+        const totVar = totGoal > 0 ? totRev - totGoal : null;
+        const totVarClass = totVar == null ? "" : totVar >= 0 ? "var-pos" : "var-neg";
+        return `<tr style="border-top:2px solid #000;font-weight:bold">
+          <td>TOTAL</td>
+          ${td(fmt$(totRev), "num")}
+          <td class="num">${totGoal > 0 ? fmt$(totGoal) : "—"}</td>
+          <td class="num ${totVarClass}">${totVar != null ? fmt$(totVar) : "—"}</td>
+          ${td(fmtN(totSeats), "num")}
+        </tr>`;
+      })()
     : `<tr><td colspan="5" class="empty">No to-date data yet.</td></tr>`;
 }
 
