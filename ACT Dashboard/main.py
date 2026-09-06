@@ -6,6 +6,7 @@ Reads Gmail inbox, parses attachments, writes to Google Sheets.
 """
 
 import os
+import re
 import tempfile
 import traceback
 from datetime import datetime, timezone
@@ -31,6 +32,33 @@ def refresh_preflight():
     return "", 204
 
 SHEET_ID = os.environ.get("SHEET_ID", "1O4P6gVsYg9eMU2a4d8h7RzVVjIWGFqDh90dyyhAxK0A")
+
+
+def _report_date(subject: str) -> str | None:
+    """Pull the report's own 'as of <date>' out of the email subject.
+
+    Rows are stamped with the date the report covers rather than the date it
+    happened to be ingested, so backfilling several days at once keeps each
+    day separate instead of collapsing them onto the run date.
+    """
+    m = re.search(r"as of\s+([A-Za-z]{3,9}\s+\d{1,2},\s*\d{4})", subject, re.IGNORECASE)
+    if not m:
+        return None
+    for fmt in ("%b %d, %Y", "%B %d, %Y"):
+        try:
+            return datetime.strptime(m.group(1).strip(), fmt).date().isoformat()
+        except ValueError:
+            continue
+    return None
+
+
+def _stamp(rows, subject, field="date"):
+    """Overwrite the date field with the report date when the subject has one."""
+    d = _report_date(subject)
+    if d:
+        for r in rows:
+            r[field] = d
+    return rows
 
 
 def _note(files_processed, warnings, label, subject, count):
@@ -69,7 +97,7 @@ def run_ingestion():
                         fname = f.name
                     data = parse_mainstage_pdf(fname)
                     os.unlink(fname)
-                    rows = data["yesterday"] + data["to_date"]
+                    rows = _stamp(data["yesterday"] + data["to_date"], subject)
                     writer.write_daily_ticket_sales(rows)
                 _note(files_processed, warnings, "Mainstage Yesterday PDF", subject, len(rows))
 
@@ -83,7 +111,7 @@ def run_ingestion():
                         fname = f.name
                     data = parse_subs_pdf(fname)
                     os.unlink(fname)
-                    rows = data["yesterday"] + data["to_date"]
+                    rows = _stamp(data["yesterday"] + data["to_date"], subject)
                     writer.write_subscriptions(rows)
                 _note(files_processed, warnings, "WS Subs PDF", subject, len(rows))
 
