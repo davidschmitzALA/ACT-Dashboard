@@ -557,9 +557,17 @@ function buildDailySales(ticketData, goalsData = []) {
       </div>`).join("");
   }
 
-  // Trend table — last 3 days by show
-  const shows = [...new Set(sorted.filter(r => r.source === "yesterday").map(r => r.show))]
-    .sort((a, b) => orderOf(a) - orderOf(b) || a.localeCompare(b));
+  // Current-season shows come from the latest to-date report, so the trend and
+  // the Season-to-Date table share one list: same order, and shows from earlier
+  // seasons drop out instead of lingering once their sales rows age out.
+  const toDate = sorted.filter(r => r.source === "to_date");
+  const latestToDateDate = toDate[0]?.date || "";
+  const latestToDate = toDate
+    .filter(r => r.date === latestToDateDate)
+    .sort(byShowOrder);
+
+  // Trend table — last 4 report dates by show
+  const shows = latestToDate.map(r => r.show);
   const headEl = $("trend-head");
   const bodyEl = $("trend-body");
 
@@ -586,11 +594,6 @@ function buildDailySales(ticketData, goalsData = []) {
   }
 
   // To-date table
-  const toDate = sorted.filter(r => r.source === "to_date");
-  const latestToDateDate = toDate[0]?.date || "";
-  const latestToDate = toDate
-    .filter(r => r.date === latestToDateDate)
-    .sort(byShowOrder);
   const bodyTD = $("todate-body");
   bodyTD.innerHTML = latestToDate.length
     ? latestToDate.map(r => {
