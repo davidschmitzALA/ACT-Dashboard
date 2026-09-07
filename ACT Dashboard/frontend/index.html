@@ -907,10 +907,36 @@ function buildCapacity(capacityData) {
     return mon.toISOString().slice(0, 10);
   }
 
+  // Curtain time as minutes past midnight; handles both "6:30:00 PM" and "18:30".
+  function timeVal(s) {
+    const m = String(s || "").match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AP]M)?/i);
+    if (!m) return 0;
+    let h = parseInt(m[1], 10);
+    const mer = m[3] ? m[3].toUpperCase() : "";
+    if (mer === "PM" && h < 12) h += 12;
+    if (mer === "AM" && h === 12) h = 0;
+    return h * 60 + parseInt(m[2], 10);
+  }
+
+  // The capacity report is re-ingested every few days and each run appends the
+  // whole upcoming run, so a performance accumulates one row per batch. Keep the
+  // most recently ingested row for each performance. Deduping per performance
+  // rather than per batch keeps a second show's report from being dropped when
+  // it happens to arrive on a different day.
+  const ingTime = r => { const d = parseDate(r.date_ingested); return d ? d.getTime() : 0; };
+  const freshest = new Map();
+  capacityData.forEach(r => {
+    const key = `${r.show}|${r.perf_date}|${r.perf_time}`;
+    const prev = freshest.get(key);
+    if (!prev || ingTime(r) >= ingTime(prev)) freshest.set(key, r);
+  });
+
   // Filter to today and future only, sorted ascending
-  const upcoming = capacityData
+  const upcoming = [...freshest.values()]
     .filter(r => { const d = parseDate(r.perf_date); return d && d >= today; })
-    .sort((a, b) => parseDate(a.perf_date) - parseDate(b.perf_date));
+    .sort((a, b) =>
+      parseDate(a.perf_date) - parseDate(b.perf_date) ||
+      timeVal(a.perf_time) - timeVal(b.perf_time));
 
   if (!upcoming.length) {
     $("capacity-body").innerHTML = `<tr><td colspan="8" class="empty">No upcoming performances found.</td></tr>`;
