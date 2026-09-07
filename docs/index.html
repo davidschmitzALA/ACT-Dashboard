@@ -566,8 +566,14 @@ function buildDailySales(ticketData, goalsData = []) {
     .filter(r => r.date === latestToDateDate)
     .sort(byShowOrder);
 
-  // Trend table — last 4 report dates by show
-  const shows = latestToDate.map(r => r.show);
+  // Trend table — last 4 report dates by show. Shows with no activity anywhere
+  // in the visible window are dropped, so the table only lists what is actually
+  // selling; order still follows the goals tab.
+  const hasActivity = show => dates.some(d => {
+    const r = sorted.find(x => x.show === show && x.date === d && x.source === "yesterday");
+    return r && ((parseFloat(r.revenue) || 0) > 0 || (parseFloat(r.seats_sold) || 0) > 0);
+  });
+  const shows = latestToDate.map(r => r.show).filter(hasActivity);
   const headEl = $("trend-head");
   const bodyEl = $("trend-body");
 
