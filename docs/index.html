@@ -521,20 +521,30 @@ async function fetchSheet(tabName) {
 // =====================================================================
 function buildDailySales(ticketData, goalsData = []) {
   const goalMap = {};
+  const showOrder = {};
   function parseGoalValue(v) { return parseFloat((v || "").replace(/[$,]/g, "")) || 0; }
-  goalsData.forEach(g => {
+  goalsData.forEach((g, i) => {
     if ((g.goal_key || "").startsWith("show_")) {
       const showName = g.goal_key.replace(/^show_/, "").replace(/_/g, " ");
       goalMap[showName] = parseGoalValue(g.value);
+      if (showOrder[showName] == null) showOrder[showName] = i;
     }
   });
+  // Display order follows the row order of the goals tab, so the season order is
+  // controlled from the sheet. Shows absent from goals fall to the end by revenue.
+  const orderOf = s => (showOrder[s] != null ? showOrder[s] : 9999);
+  const byShowOrder = (a, b) =>
+    orderOf(a.show) - orderOf(b.show) ||
+    (parseFloat(b.revenue) || 0) - (parseFloat(a.revenue) || 0);
   // Sort by date descending
   const sorted = [...ticketData].sort((a, b) => b.date.localeCompare(a.date));
   const dates = [...new Set(sorted.map(r => r.date))].slice(0, 4);
   const latestDate = dates[0] || "";
 
   // Yesterday cards
-  const yesterday = sorted.filter(r => r.source === "yesterday" && r.date === latestDate);
+  const yesterday = sorted
+    .filter(r => r.source === "yesterday" && r.date === latestDate)
+    .sort(byShowOrder);
   const cardsEl = $("yesterday-cards");
   if (!yesterday.length) {
     cardsEl.innerHTML = '<div class="empty">No yesterday data yet.</div>';
@@ -548,7 +558,8 @@ function buildDailySales(ticketData, goalsData = []) {
   }
 
   // Trend table — last 3 days by show
-  const shows = [...new Set(sorted.filter(r => r.source === "yesterday").map(r => r.show))];
+  const shows = [...new Set(sorted.filter(r => r.source === "yesterday").map(r => r.show))]
+    .sort((a, b) => orderOf(a) - orderOf(b) || a.localeCompare(b));
   const headEl = $("trend-head");
   const bodyEl = $("trend-body");
 
@@ -579,7 +590,7 @@ function buildDailySales(ticketData, goalsData = []) {
   const latestToDateDate = toDate[0]?.date || "";
   const latestToDate = toDate
     .filter(r => r.date === latestToDateDate)
-    .sort((a, b) => (parseFloat(b.revenue) || 0) - (parseFloat(a.revenue) || 0));
+    .sort(byShowOrder);
   const bodyTD = $("todate-body");
   bodyTD.innerHTML = latestToDate.length
     ? latestToDate.map(r => {
